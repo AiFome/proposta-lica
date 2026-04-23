@@ -102,20 +102,27 @@ async function salvar(){
   const nome=document.getElementById('pnome').value.trim();
   const fab=document.getElementById('pfab').value.trim();
   if(!nome||!fab){ showSt('Nome e fabricante são obrigatórios.','st-error'); return; }
-  const btn=event.currentTarget; btn.disabled=true;
+  const btn=document.querySelector('#modal .btn-primary'); btn.disabled=true;
+  const pidVal=document.getElementById('pid').value.trim();
   const data={
-    id:document.getElementById('pid').value||null, nome, fabricante:fab,
+    nome, fabricante:fab,
     gramatura:document.getElementById('pgram').value.trim(),
     categoria:document.getElementById('pcat').value,
     anvisa:document.getElementById('panvisa').value.trim(),
     codigo:document.getElementById('pcod').value.trim(),
     obs:document.getElementById('pobs').value.trim(),
   };
-  const resp=await fetch('/produtos/salvar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
-  const r=await resp.json();
-  btn.disabled=false;
-  if(r.ok){ fecharModal(); location.reload(); }
-  else { showSt(r.erro||'Erro ao salvar.','st-error'); }
+  if(pidVal) data.id = parseInt(pidVal);
+  try{
+    const resp=await fetch('/produtos/salvar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+    const r=await resp.json();
+    btn.disabled=false;
+    if(r.ok){ fecharModal(); location.reload(); }
+    else { showSt(r.erro||'Erro ao salvar.','st-error'); }
+  }catch(e){
+    btn.disabled=false;
+    showSt('Erro de conexão. Tente novamente.','st-error');
+  }
 }
 async function excluirProduto(id){
   if(!confirm('Excluir este produto?')) return;

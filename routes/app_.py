@@ -83,25 +83,32 @@ def produtos():
 @app_bp.route('/produtos/salvar', methods=['POST'])
 @login_required
 def produto_salvar():
-    if not current_user.pode_usar: return jsonify({'erro':'Acesso bloqueado.'}), 403
-    data = request.json
-    pid  = data.get('id')
-    if pid:
-        prod = UserProduto.query.filter_by(id=pid, user_id=current_user.id).first_or_404()
-    else:
-        plan = current_user.plan
-        if plan:
-            total = UserProduto.query.filter_by(user_id=current_user.id).count()
-            if total >= plan.max_produtos:
-                return jsonify({'erro': f'Limite de {plan.max_produtos} produtos atingido.'}), 403
-        prod = UserProduto(user_id=current_user.id)
-        db.session.add(prod)
-    prod.nome = data.get('nome',''); prod.fabricante = data.get('fabricante','')
-    prod.gramatura = data.get('gramatura',''); prod.categoria = data.get('categoria','')
-    prod.anvisa = data.get('anvisa',''); prod.codigo = data.get('codigo','')
-    prod.obs = data.get('obs','')
-    db.session.commit()
-    return jsonify({'ok': True, 'id': prod.id})
+    try:
+        if not current_user.pode_usar: return jsonify({'erro':'Acesso bloqueado.'}), 403
+        data = request.json
+        if not data: return jsonify({'erro':'Dados inválidos'}), 400
+        pid  = data.get('id')
+        if pid:
+            prod = UserProduto.query.filter_by(id=int(pid), user_id=current_user.id).first()
+            if not prod: return jsonify({'erro':'Produto não encontrado'}), 404
+        else:
+            plan = current_user.plan
+            if plan:
+                total = UserProduto.query.filter_by(user_id=current_user.id).count()
+                if total >= plan.max_produtos:
+                    return jsonify({'erro': f'Limite de {plan.max_produtos} produtos atingido.'}), 403
+            prod = UserProduto(user_id=current_user.id)
+            db.session.add(prod)
+        prod.nome = data.get('nome',''); prod.fabricante = data.get('fabricante','')
+        prod.gramatura = data.get('gramatura',''); prod.categoria = data.get('categoria','')
+        prod.anvisa = data.get('anvisa',''); prod.codigo = data.get('codigo','')
+        prod.obs = data.get('obs','')
+        db.session.commit()
+        return jsonify({'ok': True, 'id': prod.id})
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Erro produto_salvar: {e}')
+        return jsonify({'erro': f'Erro interno: {str(e)}'}), 500
 
 @app_bp.route('/produtos/excluir/<int:pid>', methods=['DELETE'])
 @login_required
