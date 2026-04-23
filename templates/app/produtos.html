@@ -31,7 +31,7 @@
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
-      <button class="btn btn-sm btn-outline" onclick="editarProduto({{ p | tojson }})">✏️ Editar</button>
+      <button class="btn btn-sm btn-outline" onclick="editarProduto({{ p.to_dict() | tojson }})">✏️ Editar</button>
       <button class="btn btn-sm btn-danger" onclick="excluirProduto({{ p.id }})">🗑️ Excluir</button>
     </div>
   </div>
