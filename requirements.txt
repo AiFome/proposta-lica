@@ -11,8 +11,7 @@ python-dotenv==1.0.1
 cryptography==42.0.8
 pyotp==2.9.0
 gunicorn==22.0.0
-psycopg2-binary==2.9.9
+psycopg2-binary==2.9.10
 SQLAlchemy==2.0.35
 WTForms==3.1.2
 email-validator==2.2.0
-redis==5.0.8
