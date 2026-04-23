@@ -36,16 +36,16 @@
     <div style="display:flex;flex-direction:column;gap:10px">
 
       {% if user.is_active %}
-      <form method="POST"><input type="hidden" name="acao" value="bloquear">
+      <form method="POST" action="{{ url_for('admin.usuario_acao', uid=user.id) }}" ><input type="hidden" name="acao" value="bloquear">
         <button type="submit" class="btn btn-danger btn-block" onclick="return confirm('Bloquear este usuário?')">🚫 Bloquear usuário</button>
       </form>
       {% else %}
-      <form method="POST"><input type="hidden" name="acao" value="ativar">
+      <form method="POST" action="{{ url_for('admin.usuario_acao', uid=user.id) }}" ><input type="hidden" name="acao" value="ativar">
         <button type="submit" class="btn btn-success btn-block">✅ Ativar usuário</button>
       </form>
       {% endif %}
 
-      <form method="POST" style="background:var(--primary-light);border-radius:var(--radius);padding:12px">
+      <form method="POST" action="{{ url_for('admin.usuario_acao', uid=user.id) }}"  style="background:var(--primary-light);border-radius:var(--radius);padding:12px">
         <input type="hidden" name="acao" value="estender_trial">
         <label style="display:block;margin-bottom:6px;font-size:12px;font-weight:700">⏱ Estender trial</label>
         <div style="display:flex;gap:8px;align-items:center">
@@ -55,7 +55,7 @@
         </div>
       </form>
 
-      <form method="POST" style="background:var(--accent-light);border-radius:var(--radius);padding:12px">
+      <form method="POST" action="{{ url_for('admin.usuario_acao', uid=user.id) }}"  style="background:var(--accent-light);border-radius:var(--radius);padding:12px">
         <input type="hidden" name="acao" value="dar_plano">
         <label style="display:block;margin-bottom:6px;font-size:12px;font-weight:700">💳 Atribuir plano</label>
         <div class="grid2" style="gap:8px;margin-bottom:8px">
@@ -72,7 +72,7 @@
         <button type="submit" class="btn btn-success btn-sm">Atribuir plano</button>
       </form>
 
-      <form method="POST" style="background:var(--warn-light);border-radius:var(--radius);padding:12px">
+      <form method="POST" action="{{ url_for('admin.usuario_acao', uid=user.id) }}"  style="background:var(--warn-light);border-radius:var(--radius);padding:12px">
         <input type="hidden" name="acao" value="resetar_senha">
         <label style="display:block;margin-bottom:6px;font-size:12px;font-weight:700">🔑 Redefinir senha</label>
         <div style="display:flex;gap:8px;align-items:center">
