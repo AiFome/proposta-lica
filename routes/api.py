@@ -34,3 +34,18 @@ def config():
     cfg = current_user.config
     if not cfg: return jsonify({})
     return jsonify(cfg.to_dict())
+
+@api_bp.route('/modelo')
+@login_required
+def modelo():
+    cfg = current_user.config
+    if not cfg:
+        return jsonify({'validade':'60 (SESSENTA) DIAS, A CONTAR DA DATA DA APRESENTACAO.',
+                        'prazo':'CONFORME EDITAL.','local':'CONFORME EDITAL.','decl':'','obs':''})
+    return jsonify({
+        'validade': cfg.modelo_validade or '60 (SESSENTA) DIAS, A CONTAR DA DATA DA APRESENTACAO.',
+        'prazo':    cfg.modelo_prazo    or 'CONFORME EDITAL.',
+        'local':    cfg.modelo_local    or 'CONFORME EDITAL.',
+        'decl':     cfg.modelo_decl     or '',
+        'obs':      cfg.modelo_obs      or '',
+    })

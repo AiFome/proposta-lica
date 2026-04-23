@@ -170,17 +170,55 @@ function cancelUnid(i){document.getElementById('ubadge-'+i).style.display='inlin
 async function gerarProposta(){
   const st=document.getElementById('stDocx');
   st.className='status st-info'; st.style.display='block'; st.textContent='⏳ Gerando o arquivo Word...';
-  const cfgResp=await fetch('/api/config'); const empresa=await cfgResp.json();
-  const itC=itens.filter(it=>!it.removido).map(it=>{const p=it.produtoId?produtos.find(x=>x.id==it.produtoId):null;return{...it,produto:p||null};});
+
+  // Buscar config da empresa
+  let empresa = {};
   try{
-    const resp=await fetch('/gerar-proposta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({empresa,edital:editalData,itens:itC,modelo:{}})});
-    if(!resp.ok)throw new Error('Falha ao gerar.');
-    const blob=await resp.blob(); const url=URL.createObjectURL(blob);
+    const cfgResp=await fetch('/api/config');
+    if(cfgResp.ok) empresa=await cfgResp.json();
+  }catch(e){}
+
+  // Buscar modelo de proposta do perfil
+  let modelo = {};
+  try{
+    const mdResp=await fetch('/api/modelo');
+    if(mdResp.ok) modelo=await mdResp.json();
+  }catch(e){}
+
+  const itC=itens.filter(it=>!it.removido).map(it=>{
+    const p=it.produtoId?produtos.find(x=>x.id==it.produtoId):null;
+    return{...it,produto:p||null};
+  });
+
+  if(!itC.length){
+    st.className='status st-error'; st.textContent='❌ Nenhum item selecionado para a proposta.';
+    return;
+  }
+
+  try{
+    const resp=await fetch('/gerar-proposta',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({empresa, edital:editalData, itens:itC, modelo})
+    });
+
+    // Verificar se é erro (JSON) ou sucesso (blob)
+    const contentType = resp.headers.get('content-type')||'';
+    if(!resp.ok || contentType.includes('application/json')){
+      const err=await resp.json();
+      throw new Error(err.erro||'Erro ao gerar proposta.');
+    }
+
+    const blob=await resp.blob();
+    const url=URL.createObjectURL(blob);
     const a=document.createElement('a'); a.href=url;
-    a.download=`Proposta_PE${(editalData.pregao||'').replace(/\//g,'-')}.docx`;
+    a.download=`Proposta_PE${(editalData.pregao||'proposta').replace(/\//g,'-')}.docx`;
     a.click(); URL.revokeObjectURL(url);
     st.className='status st-success'; st.textContent='✅ Proposta gerada e baixada com sucesso!';
-  }catch(e){st.className='status st-error'; st.textContent='❌ '+e.message;}
+  }catch(e){
+    st.className='status st-error';
+    st.textContent='❌ '+e.message;
+  }
 }
 </script>
 {% endblock %}

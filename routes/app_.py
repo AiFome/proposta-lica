@@ -277,15 +277,44 @@ def gerar_proposta():
     if not current_user.pode_usar: return jsonify({'erro':'Acesso bloqueado.'}), 403
     from utils.docx_gen import gerar_docx
     data = request.json
+    if not data: return jsonify({'erro':'Dados não recebidos.'}), 400
+    empresa = data.get('empresa') or {}
+    edital  = data.get('edital')  or {}
+    itens   = data.get('itens')   or []
+    modelo  = data.get('modelo')  or {}
+
+    # Se empresa vier vazia, buscar do perfil do usuário
+    if not empresa.get('razao_social') and not empresa.get('razao'):
+        cfg = current_user.config
+        if cfg:
+            empresa = cfg.to_dict()
+
+    # Se modelo vier vazio, buscar do perfil do usuário
+    if not modelo.get('validade'):
+        cfg = current_user.config
+        if cfg:
+            modelo = {
+                'validade': cfg.modelo_validade or '60 (SESSENTA) DIAS, A CONTAR DA DATA DA APRESENTACAO.',
+                'prazo':    cfg.modelo_prazo    or 'CONFORME EDITAL.',
+                'local':    cfg.modelo_local    or 'CONFORME EDITAL.',
+                'decl':     cfg.modelo_decl     or '',
+                'obs':      cfg.modelo_obs      or '',
+            }
+
     try:
-        docx = gerar_docx(data.get('empresa',{}), data.get('edital',{}),
-                          data.get('itens',[]), data.get('modelo',{}))
-        num = (data.get('edital',{}).get('pregao','') or '').replace('/','- ')
-        return send_file(io.BytesIO(docx),
+        docx = gerar_docx(empresa, edital, itens, modelo)
+        pregao = (edital.get('pregao','') or '').replace('/','- ')
+        nome_arquivo = f'Proposta_PE{pregao}.docx' if pregao else 'Proposta.docx'
+        return send_file(
+            io.BytesIO(docx),
             mimetype='application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-            as_attachment=True, download_name=f'Proposta_PE{num}.docx')
+            as_attachment=True,
+            download_name=nome_arquivo
+        )
     except Exception as e:
-        return jsonify({'erro': str(e)}), 500
+        import traceback
+        current_app.logger.error(f'Erro gerar_proposta: {traceback.format_exc()}')
+        return jsonify({'erro': f'Erro ao gerar DOCX: {str(e)}'}), 500
 
 @app_bp.route('/chat', methods=['POST'])
 @login_required
