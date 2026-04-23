@@ -282,6 +282,7 @@ def gerar_proposta():
     edital  = data.get('edital')  or {}
     itens   = data.get('itens')   or []
     modelo  = data.get('modelo')  or {}
+    estilo  = data.get('estilo')  or 'padrao'
 
     # Se empresa vier vazia, buscar do perfil do usuário
     if not empresa.get('razao_social') and not empresa.get('razao'):
@@ -302,7 +303,7 @@ def gerar_proposta():
             }
 
     try:
-        docx = gerar_docx(empresa, edital, itens, modelo)
+        docx = gerar_docx(empresa, edital, itens, modelo, estilo=estilo)
         pregao = (edital.get('pregao','') or '').replace('/','- ')
         nome_arquivo = f'Proposta_PE{pregao}.docx' if pregao else 'Proposta.docx'
         return send_file(
