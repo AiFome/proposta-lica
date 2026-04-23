@@ -31,31 +31,58 @@ def cel(text, w=2000, bold=False, sz=16, jc='left', shade=None, tc=None):
 def row(*cells):
     return f'<w:tr><w:trPr><w:trHeight w:val="400" w:hRule="atLeast"/></w:trPr>{"".join(cells)}</w:tr>'
 
+def safe(v, default=''):
+    """Garante que o valor nunca é None."""
+    if v is None: return default
+    return str(v).strip()
+
 def gerar_docx(empresa, edital, itens, modelo=None):
+    # Garantir que nenhum argumento é None
+    empresa = empresa or {}
+    edital  = edital  or {}
+    itens   = itens   or []
+    modelo  = modelo  or {}
+
     W = {'num':700,'desc':5500,'qtd':700,'unid':900,'produto':2900,'vunit':1900,'vtotal':1940}
     TW = sum(W.values())
-    md = modelo or {}
-    validade = md.get('validade','60 (SESSENTA) DIAS, A CONTAR DA DATA DA APRESENTACAO.')
-    prazo    = md.get('prazo','CONFORME EDITAL.')
-    local_e  = md.get('local','CONFORME EDITAL.')
-    decl_txt = md.get('decl','')
-    obs_txt  = md.get('obs','')
-    decls = [d.strip() for d in decl_txt.split('\n') if d.strip()] if decl_txt else [
-        'Declaramos conhecer a legislacao de referencia desta licitacao e que os produtos serao fornecidos de acordo com as condicoes estabelecidas neste Edital.',
-        'Declaro que nos precos propostos encontram-se incluidos todos os valores de tributos, encargos sociais, frete ate o destino e quaisquer outros onus.',
-        'Declaramos estar de acordo com todas as normas deste edital e seus anexos.',
-        'Declaramos, sob as penas da lei, que esta proposta atende a todos os requisitos constantes do edital.',
-    ]
-    razao = empresa.get('razao_social') or empresa.get('razao','')
-    cnpj  = empresa.get('cnpj','')
-    ie    = empresa.get('ie','')
-    tel   = empresa.get('telefone') or empresa.get('tel','')
-    email = empresa.get('email_comercial') or empresa.get('email','')
-    end   = empresa.get('endereco','')
-    banco = empresa.get('banco','')
-    rep   = empresa.get('representante') or empresa.get('rep','')
-    cpfrg = empresa.get('cpfrg','')
-    pref  = (edital.get('prefeitura','') or '').upper()
+
+    # Modelo de texto — com fallbacks seguros
+    validade = safe(modelo.get('validade'), '60 (SESSENTA) DIAS, A CONTAR DA DATA DA APRESENTACAO.')
+    prazo    = safe(modelo.get('prazo'),    'CONFORME EDITAL.')
+    local_e  = safe(modelo.get('local'),   'CONFORME EDITAL.')
+    decl_txt = safe(modelo.get('decl'),    '')
+    obs_txt  = safe(modelo.get('obs'),     '')
+
+    if decl_txt:
+        decls = [d.strip() for d in decl_txt.split('\n') if d.strip()]
+    else:
+        decls = []
+
+    if not decls:
+        decls = [
+            'Declaramos conhecer a legislacao de referencia desta licitacao e que os produtos serao fornecidos de acordo com as condicoes estabelecidas neste Edital.',
+            'Declaro que nos precos propostos encontram-se incluidos todos os valores de tributos, encargos sociais, frete ate o destino e quaisquer outros onus.',
+            'Declaramos estar de acordo com todas as normas deste edital e seus anexos.',
+            'Declaramos, sob as penas da lei, que esta proposta atende a todos os requisitos constantes do edital.',
+        ]
+
+    # Dados da empresa — com fallbacks seguros
+    razao = safe(empresa.get('razao_social') or empresa.get('razao'))
+    cnpj  = safe(empresa.get('cnpj'))
+    ie    = safe(empresa.get('ie'))
+    tel   = safe(empresa.get('telefone') or empresa.get('tel'))
+    email = safe(empresa.get('email_comercial') or empresa.get('email'))
+    end   = safe(empresa.get('endereco'))
+    banco = safe(empresa.get('banco'))
+    rep   = safe(empresa.get('representante') or empresa.get('rep'))
+    cpfrg = safe(empresa.get('cpfrg'))
+
+    # Dados do edital — com fallbacks seguros
+    pref      = safe(edital.get('prefeitura')).upper()
+    pregao    = safe(edital.get('pregao'))
+    processo  = safe(edital.get('processo'))
+    plataforma= safe(edital.get('plataforma'))
+    objeto    = safe(edital.get('objeto'))
 
     cab = ''.join([
         par(razao, bold=True, sz=22, jc='center', after=60),
@@ -65,16 +92,18 @@ def gerar_docx(empresa, edital, itens, modelo=None):
         par(f'ENDERECO: {end}', sz=20, jc='center', after=40),
         par(f'RESPONSAVEL: {rep}   |   CPF/RG: {cpfrg}', sz=20, jc='center', after=80),
         par(f'PREFEITURA MUNICIPAL DE {pref}', bold=True, sz=20, after=50),
-        par(f'PLATAFORMA: {edital.get("plataforma","")}', bold=True, sz=20, after=100),
+        par(f'PLATAFORMA: {plataforma}', bold=True, sz=20, after=100),
     ])
+
     tit = ''.join([
         par('PROPOSTA COMERCIAL', bold=True, sz=26, jc='center', after=80),
-        par(f'PREGAO ELETRONICO N {edital.get("pregao","")}', bold=True, sz=22, jc='center', after=60),
-        par(f'PROCESSO LICITATORIO N {edital.get("processo","")}', bold=True, sz=22, jc='center', after=100),
+        par(f'PREGAO ELETRONICO N {pregao}', bold=True, sz=22, jc='center', after=60),
+        par(f'PROCESSO LICITATORIO N {processo}', bold=True, sz=22, jc='center', after=100),
         par('A', sz=20, after=40),
         par(f'PREFEITURA MUNICIPAL DE {pref}', bold=True, sz=20, after=100),
-        par(f'Objeto: {edital.get("objeto","")}', sz=20, after=100),
+        par(f'Objeto: {objeto}', sz=20, after=100),
     ])
+
     hdr = row(
         cel('ITEM',         w=W['num'],     bold=True, sz=17, jc='center', shade='1A5276', tc='FFFFFF'),
         cel('DESCRICAO',    w=W['desc'],    bold=True, sz=17, jc='center', shade='1A5276', tc='FFFFFF'),
@@ -84,36 +113,57 @@ def gerar_docx(empresa, edital, itens, modelo=None):
         cel('VL. UNITARIO', w=W['vunit'],   bold=True, sz=17, jc='center', shade='1A5276', tc='FFFFFF'),
         cel('VL. TOTAL',    w=W['vtotal'],  bold=True, sz=17, jc='center', shade='1A5276', tc='FFFFFF'),
     )
+
     rows_i = ''
     for it in itens:
         p = it.get('produto') or {}
-        partes = [x for x in [p.get('nome'), p.get('fabricante'), p.get('gramatura')] if x]
+        # Garantir que os campos do produto nunca são None
+        nome_prod = safe(p.get('nome'))
+        fab_prod  = safe(p.get('fabricante'))
+        gram_prod = safe(p.get('gramatura'))
+        partes = [x for x in [nome_prod, fab_prod, gram_prod] if x]
+        nome_completo = ' / '.join(partes)
+
         rows_i += row(
-            cel(it.get('num',''),                          w=W['num'],     jc='center', sz=15),
-            cel(it.get('desc',''),                         w=W['desc'],    jc='both',   sz=14),
-            cel(it.get('qtd',''),                          w=W['qtd'],     jc='center', sz=15),
-            cel(it.get('unidNorm', it.get('unid','')),     w=W['unid'],    jc='center', sz=15),
-            cel(' / '.join(partes),                        w=W['produto'], jc='center', sz=15),
-            cel('R$ ',                                     w=W['vunit'],   jc='center', sz=15),
-            cel('R$ ',                                     w=W['vtotal'],  jc='center', sz=15),
+            cel(safe(it.get('num')),                             w=W['num'],     jc='center', sz=15),
+            cel(safe(it.get('desc')),                            w=W['desc'],    jc='both',   sz=14),
+            cel(safe(it.get('qtd')),                             w=W['qtd'],     jc='center', sz=15),
+            cel(safe(it.get('unidNorm') or it.get('unid')),     w=W['unid'],    jc='center', sz=15),
+            cel(nome_completo,                                   w=W['produto'], jc='center', sz=15),
+            cel('R$ ',                                           w=W['vunit'],   jc='center', sz=15),
+            cel('R$ ',                                           w=W['vtotal'],  jc='center', sz=15),
         )
+
     tot = row(
-        cel('', w=W['num'],  shade='F2F2F2'), cel('', w=W['desc'], shade='F2F2F2'),
-        cel('', w=W['qtd'],  shade='F2F2F2'), cel('', w=W['unid'], shade='F2F2F2'),
+        cel('', w=W['num'],  shade='F2F2F2'),
+        cel('', w=W['desc'], shade='F2F2F2'),
+        cel('', w=W['qtd'],  shade='F2F2F2'),
+        cel('', w=W['unid'], shade='F2F2F2'),
         cel('VALOR TOTAL', w=W['produto'], bold=True, sz=17, jc='center', shade='F2F2F2'),
         cel('', w=W['vunit'], shade='F2F2F2'),
         cel('R$ ', w=W['vtotal'], bold=True, sz=17, jc='center', shade='F2F2F2'),
     )
+
     gc = ''.join(f'<w:gridCol w:w="{v}"/>' for v in W.values())
     tbl = (f'<w:tbl><w:tblPr><w:tblStyle w:val="TableGrid"/><w:tblW w:w="{TW}" w:type="dxa"/><w:jc w:val="center"/>'
-           f'<w:tblBorders><w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
+           f'<w:tblBorders>'
+           f'<w:top w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
            f'<w:left w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
            f'<w:bottom w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
            f'<w:right w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
            f'<w:insideH w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
            f'<w:insideV w:val="single" w:sz="4" w:space="0" w:color="000000"/>'
-           f'</w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr><w:tblGrid>{gc}</w:tblGrid>{hdr}{rows_i}{tot}</w:tbl>')
-    cidade = end.split('/')[-1].strip() if '/' in end else (end.split(',')[-1].strip() if ',' in end else end)
+           f'</w:tblBorders><w:tblLayout w:type="fixed"/></w:tblPr>'
+           f'<w:tblGrid>{gc}</w:tblGrid>{hdr}{rows_i}{tot}</w:tbl>')
+
+    # Cidade a partir do endereço
+    if '/' in end:
+        cidade = end.split('/')[-1].strip()
+    elif ',' in end:
+        cidade = end.split(',')[-1].strip()
+    else:
+        cidade = end
+
     rod = ''.join([
         par('', sz=20, after=100),
         par('VALOR TOTAL DA PROPOSTA: R$ ___________', bold=True, sz=20, after=100),
@@ -121,7 +171,7 @@ def gerar_docx(empresa, edital, itens, modelo=None):
         par(f'PRAZO DE ENTREGA: {prazo}', sz=20, after=70),
         par(f'LOCAL DE ENTREGA: {local_e}', sz=20, after=100),
         *[par(d, sz=20, after=70) for d in decls],
-        *([par(obs_txt, sz=20, after=70)] if obs_txt.strip() else []),
+        *([par(obs_txt, sz=20, after=70)] if obs_txt else []),
         par(f'{cidade}, _____ de _________________ de 2026.', sz=20, jc='right', after=360),
         par('________________________________________', sz=20, jc='center', after=50),
         par(razao, bold=True, sz=20, jc='center', after=50),
@@ -129,6 +179,7 @@ def gerar_docx(empresa, edital, itens, modelo=None):
         par(f'{rep} - CPF/RG: {cpfrg}', sz=20, jc='center', after=50),
         par(f'ENDERECO: {end}', sz=20, jc='center', after=50),
     ])
+
     ns = ('xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '
           'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"')
     doc = (f'<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
@@ -136,6 +187,7 @@ def gerar_docx(empresa, edital, itens, modelo=None):
            f'<w:sectPr><w:pgSz w:w="16838" w:h="11906" w:orient="landscape"/>'
            f'<w:pgMar w:top="720" w:right="720" w:bottom="720" w:left="720"/></w:sectPr>'
            f'{cab}{tit}{tbl}{rod}</w:body></w:document>')
+
     styles = ('<?xml version="1.0" encoding="UTF-8" standalone="yes"?>'
               '<w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">'
               '<w:docDefaults><w:rPrDefault><w:rPr><w:rFonts w:ascii="Arial" w:hAnsi="Arial" w:cs="Arial"/>'
@@ -149,6 +201,7 @@ def gerar_docx(empresa, edital, itens, modelo=None):
               '<w:insideH w:val="single" w:sz="4" w:space="0" w:color="auto"/>'
               '<w:insideV w:val="single" w:sz="4" w:space="0" w:color="auto"/>'
               '</w:tblBorders></w:tblPr></w:style></w:styles>')
+
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, 'w', zipfile.ZIP_DEFLATED) as zf:
         zf.writestr('[Content_Types].xml',
