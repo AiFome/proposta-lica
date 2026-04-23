@@ -25,6 +25,11 @@ def _api_call(payload, apikey, timeout=180):
         return None, str(e)
 
 def _get_apikey():
+    # Sempre usa a chave do servidor (.env) — centralizada pelo admin
+    server_key = os.environ.get('ANTHROPIC_API_KEY', '').strip()
+    if server_key:
+        return server_key
+    # Fallback: chave individual do usuário (caso o admin não tenha configurado)
     cfg = current_user.config
     if not cfg or not cfg.anthropic_key_enc: return None
     try:
@@ -251,11 +256,12 @@ def analisar_edital():
     if not apikey: return jsonify({'erro':'Configure sua chave de API Anthropic nas configurações.'}), 400
     b64 = request.json.get('pdf')
     if not b64: return jsonify({'erro':'PDF não enviado'}), 400
-    prompt = ('Analise o edital PDF e extraia todos os itens do Termo de Referência. '
-              'Retorne APENAS JSON: {"pregao":"","processo":"","prefeitura":"","municipio_uf":"",'
-              '"plataforma":"","objeto":"","itens":[{"num":"01","desc":"DESCRITIVO COMPLETO EM MAIUSCULAS","qtd":"200","unid":"UNID"}]} '
-              'desc COMPLETO em MAIUSCULAS, TODOS os itens, APENAS JSON.')
-    resp, err = _api_call({'model':'claude-sonnet-4-6','max_tokens':8000,
+    prompt = ('Extraia do edital PDF: numero do pregao, processo, prefeitura, plataforma e TODOS os itens do Termo de Referencia. '
+              'Retorne APENAS JSON sem texto adicional: '
+              '{"pregao":"005/2026","processo":"022/2026","prefeitura":"Nome Municipio","plataforma":"Nome plataforma","objeto":"Objeto resumido",'
+              '"itens":[{"num":"01","desc":"DESCRICAO COMPLETA DO ITEM EM MAIUSCULAS","qtd":"10","unid":"UNID"}]} '
+              'REGRAS: desc em MAIUSCULAS, inclua TODOS os itens, retorne APENAS o JSON.')
+    resp, err = _api_call({'model':'claude-haiku-4-5-20251001','max_tokens':8000,
         'messages':[{'role':'user','content':[
             {'type':'document','source':{'type':'base64','media_type':'application/pdf','data':b64}},
             {'type':'text','text':prompt}
