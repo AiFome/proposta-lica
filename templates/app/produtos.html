@@ -31,7 +31,16 @@
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
-      <button class="btn btn-sm btn-outline" onclick="editarProduto({{ p.to_dict() | tojson }})">✏️ Editar</button>
+      <button class="btn btn-sm btn-outline"
+        data-id="{{ p.id }}"
+        data-nome="{{ p.nome|e }}"
+        data-fabricante="{{ p.fabricante|e }}"
+        data-gramatura="{{ p.gramatura|e }}"
+        data-categoria="{{ p.categoria|e }}"
+        data-anvisa="{{ p.anvisa|e }}"
+        data-codigo="{{ p.codigo|e }}"
+        data-obs="{{ p.obs|e }}"
+        onclick="editarProdutoBtn(this)">✏️ Editar</button>
       <button class="btn btn-sm btn-danger" onclick="excluirProduto({{ p.id }})">🗑️ Excluir</button>
     </div>
   </div>
@@ -83,6 +92,14 @@ function abrirModal(){
   document.getElementById('stProd').style.display='none';
   document.getElementById('modal').classList.add('open');
   document.getElementById('pnome').focus();
+}
+function editarProdutoBtn(btn){
+  const d = btn.dataset;
+  editarProduto({
+    id: d.id, nome: d.nome, fabricante: d.fabricante,
+    gramatura: d.gramatura, categoria: d.categoria,
+    anvisa: d.anvisa, codigo: d.codigo, obs: d.obs
+  });
 }
 function editarProduto(p){
   document.getElementById('pid').value=p.id||'';
