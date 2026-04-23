@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Pagamento realizado{% endblock %}
+{% block content %}
+<div style="max-width:500px;margin:60px auto;text-align:center">
+  <div style="font-size:72px;margin-bottom:16px">🎉</div>
+  <h1 style="font-size:26px;font-weight:800;color:var(--accent);margin-bottom:12px">Pagamento confirmado!</h1>
+  <p style="font-size:15px;color:var(--text-light);margin-bottom:28px">Seu plano foi ativado com sucesso. Aproveite todas as funcionalidades do PropostaLic!</p>
+  <div style="background:var(--accent-light);border:1px solid #a8dfc3;border-radius:var(--radius-lg);padding:20px;margin-bottom:28px">
+    <div style="font-size:14px;color:var(--accent);font-weight:600">✅ Plano ativo</div>
+    {% if current_user.plan %}
+    <div style="font-size:18px;font-weight:700;color:var(--text);margin-top:4px">{{ current_user.plan.nome }}</div>
+    {% endif %}
+  </div>
+  <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+    <a href="{{ url_for('app_.proposta') }}" class="btn btn-primary">📋 Criar proposta</a>
+    <a href="{{ url_for('payment.meu_plano') }}" class="btn btn-outline">💳 Meu plano</a>
+  </div>
+</div>
+{% endblock %}

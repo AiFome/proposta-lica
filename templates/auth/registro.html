@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block title %}Criar conta{% endblock %}
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card" style="max-width:480px">
+    <div class="auth-logo"><div class="logo-icon">📄</div><h1>PropostaLic</h1><p>Crie sua conta — 1 hora gratis, sem cartao</p></div>
+    {% with messages = get_flashed_messages(with_categories=true) %}{% for cat,msg in messages %}<div class="flash flash-{{cat}}" style="margin-bottom:12px">{{msg}}</div>{% endfor %}{% endwith %}
+    <form method="POST">
+      <div class="field"><label>Nome completo *</label><input type="text" name="nome" value="{{ nome|default('') }}" required minlength="3" placeholder="Seu nome completo"></div>
+      <div class="field"><label>E-mail *</label><input type="email" name="email" value="{{ email|default('') }}" required placeholder="seu@email.com"></div>
+      <div class="grid2">
+        <div class="field"><label>Senha *</label><input type="password" name="senha" required placeholder="Min. 8 caracteres"></div>
+        <div class="field"><label>Confirmar senha *</label><input type="password" name="confirmar_senha" required placeholder="Repita a senha"></div>
+      </div>
+      <div style="background:var(--primary-light);border-radius:6px;padding:9px 12px;font-size:12px;color:var(--primary);margin-bottom:12px">Minimo 8 caracteres, uma maiuscula e um numero.</div>
+      <div class="field"><label style="display:flex;align-items:flex-start;gap:8px;text-transform:none;font-size:13px;font-weight:400;color:var(--text)"><input type="checkbox" name="termos" required style="margin-top:2px"> <span>Li e aceito os <a href="#">Termos de Uso</a> e a <a href="#">Politica de Privacidade</a></span></label></div>
+      <button type="submit" class="btn btn-primary btn-block">Criar conta gratuita</button>
+    </form>
+    <div class="auth-footer">Ja tem conta? <a href="/login">Entrar</a></div>
+  </div>
+</div>
+{% endblock %}

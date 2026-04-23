@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PropostaLic — Gestao de Propostas para Licitacoes</title>
+<link rel="stylesheet" href="/static/css/style.css"></head><body>
+<div class="landing">
+<section class="landing-hero">
+  <div style="font-size:52px;margin-bottom:16px">📄</div>
+  <h1>PropostaLic</h1>
+  <p>Gere propostas comerciais para licitacoes de forma rapida e profissional com inteligencia artificial.</p>
+  <div class="hero-buttons">
+    <a href="/registro" class="btn-hero btn-hero-primary">Comecar gratis — 1 hora de teste</a>
+    <a href="#planos" class="btn-hero btn-hero-outline">Ver planos</a>
+  </div>
+  <p style="margin-top:16px;opacity:.7;font-size:13px">Sem cartao de credito para o teste</p>
+</section>
+<section class="features-section">
+  <h2>Tudo que voce precisa para licitacoes</h2>
+  <div class="features-grid">
+    <div class="feature-card"><div class="feature-icon">🤖</div><div class="feature-title">IA le o edital</div><div class="feature-desc">Faca upload do PDF e a IA extrai automaticamente todos os itens com descritivo completo.</div></div>
+    <div class="feature-card"><div class="feature-icon">📝</div><div class="feature-title">Proposta em Word</div><div class="feature-desc">Gere a proposta comercial .docx com todos os itens, produtos e valores preenchidos.</div></div>
+    <div class="feature-card"><div class="feature-icon">📁</div><div class="feature-title">ZIP de habilitacao</div><div class="feature-desc">Gere o pacote ZIP com todos os documentos exigidos pelo edital automaticamente.</div></div>
+    <div class="feature-card"><div class="feature-icon">📦</div><div class="feature-title">Catalogo de produtos</div><div class="feature-desc">Cadastre produtos com fabricante, gramatura e ANVISA e vincule a cada item do edital.</div></div>
+    <div class="feature-card"><div class="feature-icon">🔒</div><div class="feature-title">Seguranca total</div><div class="feature-desc">Dados individuais por conta, criptografia, 2FA e backup automatico.</div></div>
+    <div class="feature-card"><div class="feature-icon">💬</div><div class="feature-title">Assistente IA</div><div class="feature-desc">Chat integrado para duvidas sobre licitacoes e ajustes na proposta.</div></div>
+  </div>
+</section>
+<section class="pricing-section" id="planos">
+  <h2>Planos e precos</h2><p>Escolha o plano ideal para sua empresa</p>
+  <div class="pricing-grid">
+    {% for plan in planos %}
+    <div class="pricing-card {% if plan.destaque %}destaque{% endif %}">
+      {% if plan.destaque %}<div class="pricing-badge">Mais popular</div>{% endif %}
+      <div class="pricing-name">{{ plan.nome }}</div>
+      <div class="pricing-desc">{{ plan.descricao }}</div>
+      <div class="pricing-price">R$ {{ "%.2f"|format(plan.preco_mensal)|replace(".",",") }}<span>/mes</span></div>
+      <div class="pricing-resources">{% for r in plan.get_recursos() %}<div class="pricing-resource">✅ {{ r }}</div>{% endfor %}</div>
+      <a href="/registro" class="btn btn-primary btn-block" style="margin-top:16px">Comecar agora</a>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+<section style="background:var(--primary);color:#fff;padding:60px 20px;text-align:center">
+  <h2 style="font-size:26px;font-weight:800;margin-bottom:12px">Pronto para simplificar suas licitacoes?</h2>
+  <p style="opacity:.85;margin-bottom:28px">Teste gratis por 1 hora. Sem compromisso.</p>
+  <a href="/registro" class="btn-hero btn-hero-primary">Criar conta gratuita</a>
+</section>
+<footer class="public-footer">
+  <div class="footer-inner">
+    <span>© 2024 PropostaLic</span>
+    <div class="footer-links"><a href="#">Termos</a><a href="#">Privacidade</a><a href="/login">Entrar</a></div>
+  </div>
+</footer>
+</div></body></html>

@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Meu plano{% endblock %}
+{% block content %}
+<h1 style="font-size:20px;font-weight:700;color:var(--primary);margin-bottom:20px">💳 Meu plano</h1>
+{% if current_user.subscription_status == 'active' and current_user.plan %}
+<div class="meu-plano-card">
+  <div class="mp-nome">{{ current_user.plan.nome }}</div>
+  <div class="mp-venc">Valido ate {{ current_user.plan_end.strftime("%d/%m/%Y") if current_user.plan_end else "Ativo" }}</div>
+  <div class="mp-recursos">{% for r in current_user.plan.get_recursos() %}<div class="mp-recurso">✅ {{ r }}</div>{% endfor %}</div>
+  <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
+    <a href="/pagamento/portal" class="btn btn-outline" style="background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.4)">💳 Gerenciar pagamento</a>
+    <button onclick="if(confirm('Cancelar assinatura?'))document.getElementById('fc').submit()" class="btn btn-outline" style="background:transparent;color:rgba(255,255,255,.7);border-color:rgba(255,255,255,.3)">Cancelar</button>
+  </div>
+</div>
+<form id="fc" method="POST" action="/pagamento/cancelar" style="display:none"></form>
+{% elif current_user.subscription_status == 'trial' %}
+<div class="card" style="border-left:4px solid var(--primary);text-align:center;padding:32px">
+  <div style="font-size:40px;margin-bottom:12px">⏱</div>
+  <div style="font-size:18px;font-weight:700;color:var(--primary);margin-bottom:8px">Periodo de teste</div>
+  {% if not current_user.trial_expirado %}
+  <div style="font-size:14px;color:var(--text-light)">Expira em {{ current_user.trial_end.strftime("%d/%m/%Y as %H:%M") }}</div>
+  {% else %}
+  <div style="font-size:14px;color:var(--danger)">Periodo de teste expirado. Contrate um plano para continuar.</div>
+  {% endif %}
+  <div style="margin-top:20px"><a href="/pagamento/planos" class="btn btn-primary btn-block" style="max-width:300px;margin:0 auto">Contratar plano</a></div>
+</div>
+{% else %}
+<div class="card" style="border-left:4px solid var(--danger);text-align:center;padding:32px">
+  <div style="font-size:40px;margin-bottom:12px">⚠️</div>
+  <div style="font-size:18px;font-weight:700;color:var(--danger);margin-bottom:8px">Sem plano ativo</div>
+  <div style="margin-top:20px"><a href="/pagamento/planos" class="btn btn-primary">Ver planos</a></div>
+</div>
+{% endif %}
+{% if invoices %}
+<div class="card">
+  <div class="card-title">🧾 Historico de pagamentos</div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Data</th><th>Plano</th><th>Valor</th><th>Status</th></tr></thead>
+    <tbody>{% for inv in invoices %}<tr>
+      <td>{{ inv.created_at.strftime("%d/%m/%Y") }}</td>
+      <td>{{ inv.plan.nome if inv.plan else "—" }}</td>
+      <td>R$ {{ "%.2f"|format(inv.valor)|replace(".",",") }}</td>
+      <td><span class="badge {% if inv.status=='paid' %}badge-green{% else %}badge-yellow{% endif %}">{{ inv.status }}</span></td>
+    </tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endif %}
+<div class="card">
+  <div class="card-title">🚀 Outros planos</div>
+  <div style="display:flex;gap:12px;flex-wrap:wrap">
+    {% for plan in planos %}{% if not current_user.plan or current_user.plan.id != plan.id %}
+    <div style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:var(--radius);padding:16px">
+      <div style="font-weight:700;color:var(--primary)">{{ plan.nome }}</div>
+      <div style="font-size:18px;font-weight:800;margin:6px 0">R$ {{ "%.2f"|format(plan.preco_mensal)|replace(".",",") }}<span style="font-size:12px;font-weight:400;color:var(--text-light)">/mes</span></div>
+      <a href="/pagamento/checkout/{{ plan.slug }}/mensal" class="btn btn-primary btn-block" style="margin-top:10px">Assinar</a>
+    </div>
+    {% endif %}{% endfor %}
+  </div>
+</div>
+{% endblock %}

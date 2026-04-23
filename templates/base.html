@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}PropostaLic{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body>
+{% if current_user.is_authenticated and not current_user.is_admin %}
+  {% if current_user.subscription_status == 'trial' and not current_user.trial_expirado %}
+  <div class="trial-bar" id="trialBar">
+    <span>⏱ Teste grátis — Restante: <strong id="trialCountdown">--:--</strong></span>
+    <a href="{{ url_for('payment.planos') }}" class="trial-btn">Contratar plano</a>
+    <button onclick="this.parentElement.style.display='none'" class="trial-close">✕</button>
+  </div>
+  {% elif current_user.trial_expirado and current_user.subscription_status == 'trial' %}
+  <div class="trial-bar expired">
+    <span>⛔ Período de teste expirado.</span>
+    <a href="{{ url_for('payment.planos') }}" class="trial-btn">Ver planos</a>
+  </div>
+  {% elif current_user.subscription_status == 'past_due' %}
+  <div class="trial-bar past-due">
+    <span>⚠️ Pagamento pendente — Regularize para continuar.</span>
+    <a href="{{ url_for('payment.portal_cliente') }}" class="trial-btn">Regularizar</a>
+  </div>
+  {% endif %}
+{% endif %}
+
+{% if current_user.is_authenticated %}
+<nav class="navbar">
+  <div class="navbar-brand">
+    <a href="{{ url_for('app_.dashboard') if not current_user.is_admin else url_for('admin.dashboard') }}">
+      <span>📄</span><span class="brand-name">PropostaLic</span>
+    </a>
+  </div>
+  {% if not current_user.is_admin %}
+  <div class="navbar-menu">
+    <a href="{{ url_for('app_.dashboard') }}" class="nav-link {% if request.endpoint == 'app_.dashboard' %}active{% endif %}">🏠 Dashboard</a>
+    <a href="{{ url_for('app_.proposta') }}" class="nav-link {% if request.endpoint == 'app_.proposta' %}active{% endif %}">📋 Proposta</a>
+    <a href="{{ url_for('app_.produtos') }}" class="nav-link {% if request.endpoint == 'app_.produtos' %}active{% endif %}">📦 Produtos</a>
+    <a href="{{ url_for('app_.documentacao') }}" class="nav-link {% if request.endpoint == 'app_.documentacao' %}active{% endif %}">📁 Documentação</a>
+  </div>
+  {% else %}
+  <div class="navbar-menu">
+    <a href="{{ url_for('admin.dashboard') }}" class="nav-link {% if request.endpoint == 'admin.dashboard' %}active{% endif %}">📊 Dashboard</a>
+    <a href="{{ url_for('admin.usuarios') }}" class="nav-link {% if request.endpoint == 'admin.usuarios' %}active{% endif %}">👥 Usuários</a>
+    <a href="{{ url_for('admin.planos') }}" class="nav-link {% if request.endpoint == 'admin.planos' %}active{% endif %}">💳 Planos</a>
+    <a href="{{ url_for('admin.financeiro') }}" class="nav-link {% if request.endpoint == 'admin.financeiro' %}active{% endif %}">💰 Financeiro</a>
+    <a href="{{ url_for('admin.logs') }}" class="nav-link {% if request.endpoint == 'admin.logs' %}active{% endif %}">🔍 Logs</a>
+    <a href="{{ url_for('admin.configuracoes') }}" class="nav-link {% if request.endpoint == 'admin.configuracoes' %}active{% endif %}">⚙️ Config</a>
+    <a href="{{ url_for('admin.assistente') }}" class="nav-link nav-ia {% if request.endpoint == 'admin.assistente' %}active{% endif %}">🤖 IA</a>
+  </div>
+  {% endif %}
+  <div class="navbar-right">
+    <div class="user-menu" onclick="document.getElementById('ud').classList.toggle('show')">
+      <div class="user-avatar">{{ current_user.nome[0].upper() }}</div>
+      <span class="user-name">{{ current_user.nome.split()[0] }}</span>
+      <span>▾</span>
+    </div>
+    <div class="user-dropdown" id="ud">
+      <div class="dropdown-header">
+        <div class="dh-name">{{ current_user.nome }}</div>
+        <div class="dh-email">{{ current_user.email }}</div>
+        {% if not current_user.is_admin %}
+        <div class="dh-plan">
+          {% if current_user.subscription_status == 'active' and current_user.plan %}
+            <span class="badge-plan active">{{ current_user.plan.nome }}</span>
+          {% elif current_user.subscription_status == 'trial' %}
+            <span class="badge-plan trial">Trial</span>
+          {% else %}
+            <span class="badge-plan expired">{{ current_user.subscription_status }}</span>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+      <div class="dropdown-divider"></div>
+      {% if not current_user.is_admin %}
+      <a href="{{ url_for('app_.perfil') }}" class="dropdown-item">👤 Meu perfil</a>
+      <a href="{{ url_for('payment.meu_plano') }}" class="dropdown-item">💳 Meu plano</a>
+      <div class="dropdown-divider"></div>
+      {% endif %}
+      <a href="{{ url_for('auth.logout') }}" class="dropdown-item logout">🚪 Sair</a>
+    </div>
+  </div>
+</nav>
+{% endif %}
+
+<main class="main-content {% if not current_user.is_authenticated %}main-public{% endif %}">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% if messages %}
+    <div class="flash-container">
+      {% for category, message in messages %}
+      <div class="flash flash-{{ category }}" onclick="this.remove()">{{ message }} <button class="flash-close">✕</button></div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% endwith %}
+  {% block content %}{% endblock %}
+</main>
+
+{% if not current_user.is_authenticated %}
+<footer class="public-footer">
+  <div class="footer-inner">
+    <span>© 2024 PropostaLic</span>
+    <div class="footer-links">
+      <a href="#">Termos</a><a href="#">Privacidade</a>
+      <a href="{{ url_for('auth.login') }}">Entrar</a>
+    </div>
+  </div>
+</footer>
+{% endif %}
+
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% block scripts %}{% endblock %}
+<script>
+{% if current_user.is_authenticated and current_user.subscription_status == 'trial' and not current_user.trial_expirado %}
+(function(){
+  function tick(){
+    fetch('/api/status').then(r=>r.json()).then(d=>{
+      if(!d.trial_restante){ location.reload(); return; }
+      const m=Math.floor(d.trial_restante/60), s=d.trial_restante%60;
+      const el=document.getElementById('trialCountdown');
+      if(el) el.textContent=m+':'+(s<10?'0':'')+s;
+      if(d.trial_restante<=300){ document.getElementById('trialBar')?.classList.add('warning'); }
+    }).catch(()=>{});
+  }
+  tick(); setInterval(tick,10000);
+})();
+{% endif %}
+document.addEventListener('click',function(e){
+  if(!e.target.closest('.user-menu')) document.getElementById('ud')?.classList.remove('show');
+});
+setTimeout(()=>{ document.querySelectorAll('.flash').forEach(f=>{ f.style.opacity='0'; setTimeout(()=>f.remove(),400); }); },5000);
+</script>
+</body>
+</html>

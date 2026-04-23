@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+{% block title %}Meu perfil{% endblock %}
+{% block content %}
+<h1 style="font-size:20px;font-weight:700;color:var(--primary);margin-bottom:18px">👤 Meu perfil</h1>
+<div class="perfil-tabs">
+  <button class="perfil-tab active" onclick="showTab('dados',this)">👤 Dados pessoais</button>
+  <button class="perfil-tab" onclick="showTab('empresa',this)">🏢 Empresa</button>
+  <button class="perfil-tab" onclick="showTab('senha',this)">🔒 Senha</button>
+  <button class="perfil-tab" onclick="showTab('modelo',this)">📝 Modelo proposta</button>
+  <button class="perfil-tab" onclick="showTab('api',this)">🔑 API Key</button>
+</div>
+
+<div class="perfil-section active" id="tab-dados">
+  <div class="card">
+    <div class="card-title">👤 Dados pessoais</div>
+    <form method="POST">
+      <input type="hidden" name="acao" value="dados">
+      <div class="grid2">
+        <div class="field"><label>Nome completo *</label><input type="text" name="nome" value="{{ current_user.nome }}" required></div>
+        <div class="field"><label>Telefone</label><input type="text" name="telefone" value="{{ current_user.telefone or '' }}" placeholder="(00) 00000-0000"></div>
+      </div>
+      <div class="grid2" style="margin-top:12px">
+        <div class="field"><label>Empresa</label><input type="text" name="empresa" value="{{ current_user.empresa or '' }}"></div>
+        <div class="field"><label>CNPJ</label><input type="text" name="cnpj" value="{{ current_user.cnpj or '' }}"></div>
+      </div>
+      <div class="field" style="margin-top:12px"><label>E-mail</label><input type="email" value="{{ current_user.email }}" disabled style="opacity:.6"><span class="text-muted">O e-mail nao pode ser alterado.</span></div>
+      <div style="margin-top:16px;text-align:right"><button type="submit" class="btn btn-primary">💾 Salvar dados</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="perfil-section" id="tab-empresa">
+  <div class="card">
+    <div class="card-title">🏢 Dados da empresa (usados nas propostas)</div>
+    <form method="POST">
+      <input type="hidden" name="acao" value="empresa_config">
+      {% set cfg = current_user.config %}
+      <div class="grid2">
+        <div class="field"><label>Razao social</label><input type="text" name="razao_social" value="{{ cfg.razao_social if cfg else '' }}"></div>
+        <div class="field"><label>CNPJ da empresa</label><input type="text" name="cnpj_empresa" value="{{ cfg.cnpj if cfg else '' }}"></div>
+      </div>
+      <div class="grid3" style="margin-top:12px">
+        <div class="field"><label>Inscricao estadual</label><input type="text" name="ie" value="{{ cfg.ie if cfg else '' }}"></div>
+        <div class="field"><label>Telefone comercial</label><input type="text" name="tel" value="{{ cfg.telefone if cfg else '' }}"></div>
+        <div class="field"><label>E-mail comercial</label><input type="email" name="email_comercial" value="{{ cfg.email_comercial if cfg else '' }}"></div>
+      </div>
+      <div class="grid2" style="margin-top:12px">
+        <div class="field"><label>Endereco completo</label><input type="text" name="endereco" value="{{ cfg.endereco if cfg else '' }}"></div>
+        <div class="field"><label>Banco / Agencia / Conta</label><input type="text" name="banco" value="{{ cfg.banco if cfg else '' }}"></div>
+      </div>
+      <div class="grid2" style="margin-top:12px">
+        <div class="field"><label>Representante legal</label><input type="text" name="representante" value="{{ cfg.representante if cfg else '' }}"></div>
+        <div class="field"><label>CPF / RG do representante</label><input type="text" name="cpfrg" value="{{ cfg.cpfrg if cfg else '' }}"></div>
+      </div>
+      <div style="margin-top:16px;text-align:right"><button type="submit" class="btn btn-primary">💾 Salvar empresa</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="perfil-section" id="tab-senha">
+  <div class="card">
+    <div class="card-title">🔒 Alterar senha</div>
+    <form method="POST" style="max-width:400px">
+      <input type="hidden" name="acao" value="senha">
+      <div class="field"><label>Senha atual</label><input type="password" name="senha_atual" required></div>
+      <div class="field"><label>Nova senha</label><input type="password" name="nova_senha" required placeholder="Min. 8 caracteres"></div>
+      <div class="field"><label>Confirmar nova senha</label><input type="password" name="confirmar_senha" required></div>
+      <div style="margin-top:16px"><button type="submit" class="btn btn-primary">🔒 Alterar senha</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="perfil-section" id="tab-modelo">
+  <div class="card">
+    <div class="card-title">📝 Modelo de proposta</div>
+    <form method="POST">
+      <input type="hidden" name="acao" value="modelo">
+      {% set cfg = current_user.config %}
+      <div class="grid2" style="margin-bottom:12px">
+        <div class="field"><label>Validade da proposta</label><input type="text" name="modelo_validade" value="{{ cfg.modelo_validade if cfg else '60 (SESSENTA) DIAS, A CONTAR DA DATA DA APRESENTACAO.' }}"></div>
+        <div class="field"><label>Prazo de entrega</label><input type="text" name="modelo_prazo" value="{{ cfg.modelo_prazo if cfg else 'CONFORME EDITAL.' }}"></div>
+      </div>
+      <div class="field" style="margin-bottom:12px"><label>Local de entrega</label><input type="text" name="modelo_local" value="{{ cfg.modelo_local if cfg else 'CONFORME EDITAL.' }}"></div>
+      <div class="field" style="margin-bottom:12px">
+        <label>Declaracoes (cada linha = um paragrafo)</label>
+        <textarea name="modelo_decl" rows="7">{{ cfg.modelo_decl if cfg and cfg.modelo_decl else 'Declaramos conhecer a legislacao de referencia desta licitacao.
+Declaramos estar de acordo com todas as normas deste edital e seus anexos.
+Declaramos, sob as penas da lei, que esta proposta atende a todos os requisitos constantes do edital.' }}</textarea>
+      </div>
+      <div class="field" style="margin-bottom:16px"><label>Observacao final (opcional)</label><textarea name="modelo_obs" rows="2">{{ cfg.modelo_obs if cfg else '' }}</textarea></div>
+      <button type="submit" class="btn btn-primary">💾 Salvar modelo</button>
+    </form>
+  </div>
+</div>
+
+<div class="perfil-section" id="tab-api">
+  <div class="card">
+    <div class="card-title">🔑 Chave de API Anthropic (Claude)</div>
+    <div style="background:var(--primary-light);border-radius:var(--radius);padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--primary)">
+      Necessaria para analise de editais por IA e assistente virtual. Obtenha em <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>. Armazenada de forma criptografada.
+    </div>
+    <form method="POST" style="max-width:500px">
+      <input type="hidden" name="acao" value="empresa_config">
+      {% set cfg = current_user.config %}
+      <div class="field">
+        <label>Chave de API</label>
+        <input type="password" name="anthropic_key" placeholder="sk-ant-api03-..." value="{{ '••••••••' if cfg and cfg.anthropic_key_enc else '' }}">
+        {% if cfg and cfg.anthropic_key_enc %}<span class="text-muted" style="color:var(--accent)">✅ Chave configurada. Digite nova para substituir.</span>{% endif %}
+      </div>
+      <div style="margin-top:14px"><button type="submit" class="btn btn-primary">💾 Salvar chave</button></div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function showTab(id,btn){
+  document.querySelectorAll(".perfil-section").forEach(s=>s.classList.remove("active"));
+  document.querySelectorAll(".perfil-tab").forEach(b=>b.classList.remove("active"));
+  document.getElementById("tab-"+id).classList.add("active"); btn.classList.add("active");
+}
+const hash=location.hash.replace("#","");
+if(hash){ const btn=document.querySelector(`[onclick*="'${hash}'"]`); if(btn) btn.click(); }
+</script>
+{% endblock %}

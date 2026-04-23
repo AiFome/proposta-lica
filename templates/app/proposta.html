@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+{% block title %}Proposta{% endblock %}
+{% block content %}
+<h1 style="font-size:20px;font-weight:700;color:var(--primary);margin-bottom:20px">📋 Gerar Proposta Comercial</h1>
+
+<div class="card">
+  <div class="card-title"><div class="num">1</div> Edital em PDF</div>
+  <div class="drop-zone" id="dz" onclick="document.getElementById('pdfInput').click()">
+    <div class="dz-icon">📂</div>
+    <div class="dz-title">Clique para selecionar o PDF do edital</div>
+    <div class="dz-sub">Ou arraste e solte aqui · somente .pdf</div>
+  </div>
+  <input type="file" id="pdfInput" accept=".pdf" style="display:none">
+  <div class="file-loaded" id="fileLoaded">
+    <span style="font-size:24px">📄</span>
+    <div><div style="font-weight:700;font-size:13px" id="fName"></div><div style="font-size:11px;color:var(--text-light)" id="fSize"></div></div>
+    <button onclick="removerPDF()" style="margin-left:auto;background:none;border:none;cursor:pointer;color:var(--text-light);font-size:18px">✕</button>
+  </div>
+
+  {% if editais %}
+  <div style="margin-top:14px">
+    <div style="font-size:12px;font-weight:700;color:var(--text-light);margin-bottom:8px;text-transform:uppercase">Ou carregue um edital já cadastrado:</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      {% for ed in editais %}
+      <button onclick="carregarEditalSalvo({{ ed.id }})" class="btn btn-outline btn-sm">📋 {{ ed.pregao or ed.nome[:30] }}</button>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<button class="btn btn-primary btn-block" id="btnAnalisar" onclick="analisar()" disabled>🔍 Analisar edital e extrair itens</button>
+<div class="status" id="stMsg"></div>
+<div class="progress-wrap" id="pw">
+  <div class="progress-bar"><div class="progress-fill" id="pf" style="width:0%"></div></div>
+  <div class="progress-label" id="pl"></div>
+</div>
+
+<div class="card" id="tblCard" style="display:none;margin-top:18px">
+  <div class="card-title"><div class="num">2</div> Itens — selecione o produto para cada item</div>
+  <div style="background:var(--primary-light);border:1px solid #aecbf0;border-radius:var(--radius);padding:11px 15px;display:flex;gap:18px;margin-bottom:12px;flex-wrap:wrap;font-size:13px;color:var(--primary)" id="sbr"></div>
+  <p style="font-size:12px;color:var(--text-light);margin-bottom:11px">Selecione o produto cadastrado para cada item. Clique na unidade para editar. Use ✕ para não participar de um item.</p>
+  <div class="table-wrap">
+    <table>
+      <thead><tr>
+        <th style="width:42px">Nº</th>
+        <th>Descrição do edital</th>
+        <th style="width:52px;text-align:center">Qtd</th>
+        <th style="width:88px;text-align:center">Unidade</th>
+        <th style="width:220px">Produto cadastrado</th>
+        <th style="width:44px;text-align:center">Ação</th>
+      </tr></thead>
+      <tbody id="tbi"></tbody>
+    </table>
+  </div>
+  <div style="margin-top:16px">
+    <button class="btn btn-success btn-block" onclick="gerarProposta()">⬇ Gerar e baixar proposta (.docx)</button>
+  </div>
+  <div class="status" id="stDocx"></div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+const produtos = {{ produtos | tojson }};
+let pdfB64=null, itens=[], editalData={};
+
+const dz=document.getElementById('dz'), pi=document.getElementById('pdfInput');
+pi.onchange=e=>{if(e.target.files[0])loadPDF(e.target.files[0]);};
+dz.ondragover=e=>{e.preventDefault();dz.classList.add('drag-over');};
+dz.ondragleave=()=>dz.classList.remove('drag-over');
+dz.ondrop=e=>{e.preventDefault();dz.classList.remove('drag-over');if(e.dataTransfer.files[0])loadPDF(e.dataTransfer.files[0]);};
+
+function loadPDF(file){
+  if(!file.name.endsWith('.pdf')){showSt('stMsg','Apenas arquivos .pdf são aceitos.','st-error');return;}
+  const r=new FileReader();
+  r.onload=ev=>{
+    pdfB64=ev.target.result.split(',')[1];
+    dz.style.display='none';
+    const fl=document.getElementById('fileLoaded'); fl.style.display='flex';
+    document.getElementById('fName').textContent=file.name;
+    document.getElementById('fSize').textContent=fmtBytes(file.size);
+    document.getElementById('btnAnalisar').disabled=false;
+    hideSt('stMsg');
+  };
+  r.readAsDataURL(file);
+}
+function removerPDF(){
+  pdfB64=null; pi.value=''; dz.style.display='block';
+  document.getElementById('fileLoaded').style.display='none';
+  document.getElementById('btnAnalisar').disabled=true;
+  document.getElementById('tblCard').style.display='none';
+  hideSt('stMsg');
+}
+
+async function carregarEditalSalvo(id){
+  const resp=await fetch('/api/editais');
+  const eds=await resp.json();
+  const ed=eds.find(e=>e.id===id);
+  if(!ed||!ed.itens||!ed.itens.length){showSt('stMsg','Edital sem itens extraídos. Faça upload do PDF para analisar.','st-warn');return;}
+  editalData=ed;
+  itens=ed.itens.map(it=>({...it,unidNorm:normU(it.unid),produtoId:'',removido:false}));
+  renderTabela();
+  showSt('stMsg',`✅ ${itens.length} itens carregados do edital.`,'st-success');
+}
+
+function showSt(id,msg,cls){const e=document.getElementById(id);e.textContent=msg;e.className='status '+cls;e.style.display='block';}
+function hideSt(id){document.getElementById(id).style.display='none';}
+function setP(pct,lbl){document.getElementById('pw').style.display=pct>0?'block':'none';document.getElementById('pf').style.width=pct+'%';document.getElementById('pl').textContent=lbl||'';}
+function fmtBytes(b){if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB';}
+function normU(u){const s=(u||'').trim().toUpperCase().replace(/\.$/,'');if(['CX','CAIXA','CAIXAS'].includes(s))return'CAIXA';if(['UNID','UN','UNIDADE'].includes(s))return'LATA';if(['G','GR','GRAMA','GRAMAS'].includes(s))return'GRAMAS';if(['KG','QUILO'].includes(s))return'KG';return u;}
+function badgU(u){return{'CAIXA':'badge-caixa','LATA':'badge-lata','GRAMAS':'badge-gramas','KG':'badge-kg'}[u]||'badge-gray';}
+
+async function analisar(){
+  if(!pdfB64)return;
+  document.getElementById('btnAnalisar').disabled=true;
+  document.getElementById('btnAnalisar').textContent='⏳ Analisando...';
+  document.getElementById('tblCard').style.display='none';
+  showSt('stMsg','📖 Enviando para análise com IA...','st-info');
+  setP(20,'Enviando PDF...');
+  try{
+    setP(45,'Claude está lendo o edital...');
+    const resp=await fetch('/analisar-edital',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pdf:pdfB64})});
+    setP(80,'Processando itens...');
+    const data=await resp.json();
+    if(data.erro)throw new Error(data.erro);
+    editalData=data;
+    itens=data.itens.map(it=>({...it,unidNorm:normU(it.unid),produtoId:'',removido:false}));
+    setP(100,'Concluído!'); setTimeout(()=>setP(0),700);
+    renderTabela();
+    showSt('stMsg',`✅ ${itens.length} itens extraídos! Selecione os produtos.`,'st-success');
+  }catch(e){showSt('stMsg','❌ Erro: '+e.message,'st-error');setP(0);}
+  finally{document.getElementById('btnAnalisar').disabled=false;document.getElementById('btnAnalisar').textContent='🔍 Analisar edital e extrair itens';}
+}
+
+function renderTabela(){
+  document.getElementById('tblCard').style.display='block';
+  const ativos=itens.filter(x=>!x.removido);
+  document.getElementById('sbr').innerHTML=`<span>📋 Pregão: <strong>${editalData.pregao||'-'}</strong></span><span>🏛 ${editalData.prefeitura||'-'}</span><span>📦 <strong>${ativos.length}</strong> itens participando</span>${itens.length>ativos.length?`<span style="color:var(--danger)">🚫 ${itens.length-ativos.length} removidos</span>`:''}`;
+  const opts='<option value="">— Sem produto —</option>'+produtos.map(p=>`<option value="${p.id}">${p.nome}${p.gramatura?' ('+p.gramatura+')':''} — ${p.fabricante}</option>`).join('');
+  document.getElementById('tbi').innerHTML=itens.map((it,i)=>{
+    const rem=it.removido;
+    return `<tr style="${rem?'opacity:.4;background:#fafafa':''}">
+      <td style="font-weight:700;color:var(--primary);${rem?'text-decoration:line-through':''}">${it.num}</td>
+      <td style="font-size:12px;max-width:360px;${rem?'text-decoration:line-through':''}">${rem?'<em style="font-size:11px;color:var(--danger)">[NÃO PARTICIPANDO]</em> ':''}${it.desc}</td>
+      <td style="text-align:center">${it.qtd}</td>
+      <td style="text-align:center">
+        <span class="badge ${badgU(it.unidNorm)}" id="ubadge-${i}" style="cursor:pointer" onclick="editUnid(${i})" title="Clique para editar">${it.unidNorm}</span>
+        <input type="text" id="uinput-${i}" value="${it.unidNorm}" style="display:none;width:76px;padding:3px 7px;font-size:12px;border:1px solid var(--primary);border-radius:5px;text-align:center" onblur="salvarUnid(${i},this.value)" onkeydown="if(event.key==='Enter')salvarUnid(${i},this.value);if(event.key==='Escape')cancelUnid(${i})">
+      </td>
+      <td>${rem?'':`<select style="width:100%;padding:5px 8px;font-size:12px;border:1px solid var(--border);border-radius:5px" onchange="selProd(${i},this.value)">${opts}</select><div id="pi-${i}" style="font-size:11px;color:var(--text-light);margin-top:3px;line-height:1.5"></div>`}</td>
+      <td style="text-align:center">${rem?`<button onclick="restaurar(${i})" style="background:var(--accent-light);border:1px solid #a8dfc3;color:var(--accent);border-radius:5px;padding:4px 8px;cursor:pointer;font-size:14px">↩</button>`:`<button onclick="remover(${i})" style="background:var(--danger-light);border:1px solid #f0b3b3;color:var(--danger);border-radius:5px;padding:4px 8px;cursor:pointer;font-size:14px">✕</button>`}</td>
+    </tr>`;
+  }).join('');
+  itens.forEach((it,i)=>{if(it.produtoId&&!it.removido){const sel=document.querySelector(`#tbi tr:nth-child(${i+1}) select`);if(sel){sel.value=it.produtoId;showPi(i,it.produtoId);}}});
+}
+
+function remover(i){itens[i].removido=true;renderTabela();}
+function restaurar(i){itens[i].removido=false;renderTabela();}
+function selProd(i,id){itens[i].produtoId=id;showPi(i,id);}
+function showPi(i,id){
+  const el=document.getElementById('pi-'+i); if(!el)return;
+  if(!id){el.innerHTML='';return;}
+  const p=produtos.find(x=>x.id==id); if(!p){el.innerHTML='';return;}
+  el.innerHTML=[p.nome?`<span style="background:var(--gray-light);border-radius:4px;padding:1px 5px;margin:2px 2px 0 0;display:inline-block">📦 ${p.nome}</span>`:'',p.gramatura?`<span style="background:var(--gray-light);border-radius:4px;padding:1px 5px;margin:2px 2px 0 0;display:inline-block">⚖️ ${p.gramatura}</span>`:'',p.fabricante?`<span style="background:var(--gray-light);border-radius:4px;padding:1px 5px;margin:2px 2px 0 0;display:inline-block">🏭 ${p.fabricante}</span>`:''].filter(Boolean).join('');
+}
+function editUnid(i){document.getElementById('ubadge-'+i).style.display='none';const inp=document.getElementById('uinput-'+i);inp.style.display='inline-block';inp.focus();inp.select();}
+function salvarUnid(i,v){const val=v.trim()||itens[i].unidNorm;itens[i].unidNorm=val;const b=document.getElementById('ubadge-'+i),inp=document.getElementById('uinput-'+i);if(b&&inp){b.textContent=val;b.className='badge '+badgU(val);b.style.display='inline-block';inp.style.display='none';}}
+function cancelUnid(i){document.getElementById('ubadge-'+i).style.display='inline-block';document.getElementById('uinput-'+i).style.display='none';}
+
+async function gerarProposta(){
+  const st=document.getElementById('stDocx');
+  st.className='status st-info'; st.style.display='block'; st.textContent='⏳ Gerando o arquivo Word...';
+  const cfgResp=await fetch('/api/config'); const empresa=await cfgResp.json();
+  const itC=itens.filter(it=>!it.removido).map(it=>{const p=it.produtoId?produtos.find(x=>x.id==it.produtoId):null;return{...it,produto:p||null};});
+  try{
+    const resp=await fetch('/gerar-proposta',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({empresa,edital:editalData,itens:itC,modelo:{}})});
+    if(!resp.ok)throw new Error('Falha ao gerar.');
+    const blob=await resp.blob(); const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url;
+    a.download=`Proposta_PE${(editalData.pregao||'').replace(/\//g,'-')}.docx`;
+    a.click(); URL.revokeObjectURL(url);
+    st.className='status st-success'; st.textContent='✅ Proposta gerada e baixada com sucesso!';
+  }catch(e){st.className='status st-error'; st.textContent='❌ '+e.message;}
+}
+</script>
+{% endblock %}

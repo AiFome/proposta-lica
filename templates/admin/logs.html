@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Admin — Logs{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+  <h1 style="font-size:18px;font-weight:700;color:var(--primary)">🔍 Logs de segurança</h1>
+  <div style="display:flex;gap:8px">
+    <a href="?tipo=login" class="btn btn-sm {% if tipo=='login' %}btn-primary{% else %}btn-outline{% endif %}">🔐 Logins</a>
+    <a href="?tipo=admin" class="btn btn-sm {% if tipo=='admin' %}btn-primary{% else %}btn-outline{% endif %}">🛡️ Admin</a>
+  </div>
+</div>
+<div class="card">
+  <div class="table-wrap"><table>
+    {% if tipo == 'login' %}
+    <thead><tr><th>Data/Hora</th><th>Usuário</th><th>IP</th><th>Resultado</th><th>Motivo</th></tr></thead>
+    <tbody>
+      {% for log in logs.items %}
+      <tr>
+        <td style="font-size:12px;white-space:nowrap">{{ log.created_at.strftime("%d/%m/%Y %H:%M") }}</td>
+        <td>
+          {% if log.user %}
+          <a href="{{ url_for('admin.usuario_detalhe', uid=log.user_id) }}" style="font-size:13px">{{ log.user.email }}</a>
+          {% else %}<span style="font-size:13px;color:var(--text-light)">ID {{ log.user_id }}</span>{% endif %}
+        </td>
+        <td style="font-size:12px;font-family:monospace">{{ log.ip or "—" }}</td>
+        <td>
+          <span class="badge {% if log.sucesso %}badge-green{% else %}badge-red{% endif %}">
+            {% if log.sucesso %}✅ Sucesso{% else %}❌ Falha{% endif %}
+          </span>
+        </td>
+        <td style="font-size:12px;color:var(--text-light)">{{ log.motivo or "—" }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-light)">Nenhum log de login.</td></tr>
+      {% endfor %}
+    </tbody>
+    {% else %}
+    <thead><tr><th>Data/Hora</th><th>Admin</th><th>Ação</th><th>Detalhe</th><th>IP</th></tr></thead>
+    <tbody>
+      {% for log in logs.items %}
+      <tr>
+        <td style="font-size:12px;white-space:nowrap">{{ log.created_at.strftime("%d/%m/%Y %H:%M") }}</td>
+        <td style="font-size:13px">{{ log.admin_id }}</td>
+        <td><span class="badge badge-blue">{{ log.acao }}</span></td>
+        <td style="font-size:12px;color:var(--text-light);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ log.detalhe or "—" }}</td>
+        <td style="font-size:12px;font-family:monospace">{{ log.ip or "—" }}</td>
+      </tr>
+      {% else %}
+      <tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-light)">Nenhuma ação admin registrada.</td></tr>
+      {% endfor %}
+    </tbody>
+    {% endif %}
+  </table></div>
+
+  {% if logs.pages > 1 %}
+  <div class="pagination">
+    {% if logs.has_prev %}<a href="?tipo={{ tipo }}&page={{ logs.prev_num }}" class="page-link">‹</a>{% endif %}
+    {% for p in logs.iter_pages() %}
+      {% if p %}<a href="?tipo={{ tipo }}&page={{ p }}" class="page-link {% if p==logs.page %}active{% endif %}">{{ p }}</a>
+      {% else %}<span class="page-link disabled">…</span>{% endif %}
+    {% endfor %}
+    {% if logs.has_next %}<a href="?tipo={{ tipo }}&page={{ logs.next_num }}" class="page-link">›</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

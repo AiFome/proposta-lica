@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Admin — Assistente IA{% endblock %}
+{% block content %}
+<div style="margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+  <h1 style="font-size:18px;font-weight:700;color:var(--primary)">🤖 Assistente IA — Editor do Sistema</h1>
+  <div style="display:flex;gap:8px">
+    <button class="btn btn-outline btn-sm" onclick="salvarArquivo()">💾 Salvar</button>
+    <button class="btn btn-outline btn-sm" onclick="verBackups()">📂 Backups</button>
+  </div>
+</div>
+<div class="assistente-layout">
+  <div class="file-tree">
+    <div class="file-tree-header">📁 Arquivos do sistema</div>
+    {% for arquivo in arquivos %}
+    <div class="file-item" onclick="abrirArquivo('{{ arquivo }}')">
+      {% if arquivo.endswith('.py') %}🐍{% elif arquivo.endswith('.html') %}🌐{% elif arquivo.endswith('.css') %}🎨{% elif arquivo.endswith('.js') %}⚡{% else %}📄{% endif %}
+      {{ arquivo }}
+    </div>
+    {% endfor %}
+  </div>
+  <div class="assistente-main">
+    <div class="editor-toolbar">
+      <span class="editor-filename" id="editorFilename">Selecione um arquivo →</span>
+      <button class="btn btn-sm btn-outline" onclick="salvarArquivo()" id="btnSalvar" disabled>💾 Salvar</button>
+      <button class="btn btn-sm btn-outline" onclick="navigator.clipboard.writeText(document.getElementById('codeEditor').value)">📋 Copiar</button>
+    </div>
+    <textarea class="code-editor" id="codeEditor" placeholder="Selecione um arquivo para editar..." spellcheck="false"></textarea>
+    <div class="chat-panel-admin">
+      <div style="padding:10px 14px;border-bottom:1px solid var(--border);background:var(--primary-light);font-size:12px;font-weight:700;color:var(--primary);display:flex;justify-content:space-between">
+        🤖 Claude — Assistente de desenvolvimento
+        <button class="btn btn-sm btn-outline" onclick="limparChat()">Limpar</button>
+      </div>
+      <div class="chat-messages-admin" id="chatMessages">
+        <div style="text-align:center;padding:16px;color:var(--text-light);font-size:13px">💡 Peca para a IA modificar o arquivo aberto, explicar o codigo ou implementar novas funcionalidades.</div>
+      </div>
+      <div class="chat-input-admin">
+        <textarea id="chatInput" placeholder="Ex: Adicione validacao de CNPJ no registro..." rows="1"
+          onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();enviarChat()}"></textarea>
+        <button onclick="enviarChat()" id="chatBtn">➤</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+let arqAtual='', chatHist=[];
+async function abrirArquivo(arq){
+  arqAtual=arq;
+  document.querySelectorAll('.file-item').forEach(f=>f.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  const resp=await fetch('/admin/assistente/ler',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({arquivo:arq})});
+  const data=await resp.json();
+  if(data.erro){alert('Erro: '+data.erro);return;}
+  document.getElementById('codeEditor').value=data.conteudo;
+  document.getElementById('editorFilename').textContent=arq;
+  document.getElementById('btnSalvar').disabled=false;
+}
+async function salvarArquivo(){
+  if(!arqAtual){alert('Nenhum arquivo aberto.');return;}
+  const resp=await fetch('/admin/assistente/salvar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({arquivo:arqAtual,conteudo:document.getElementById('codeEditor').value})});
+  const data=await resp.json();
+  if(data.ok){const btn=document.getElementById('btnSalvar');btn.textContent='✅ Salvo!';setTimeout(()=>btn.textContent='💾 Salvar',2000);}
+  else alert('Erro: '+data.erro);
+}
+function addMsg(txt,tipo){
+  const msgs=document.getElementById('chatMessages');
+  const tip=msgs.querySelector('[style*="text-align:center"]');if(tip)tip.remove();
+  const div=document.createElement('div');div.className='chat-msg-admin '+tipo;
+  div.innerHTML=txt.replace(/```(\w*)\n?([\s\S]*?)```/g,'<pre><code>$2</code></pre>').replace(/\n/g,'<br>');
+  msgs.appendChild(div);msgs.scrollTop=msgs.scrollHeight;return div;
+}
+async function enviarChat(){
+  const inp=document.getElementById('chatInput');const msg=inp.value.trim();if(!msg)return;
+  inp.value='';inp.style.height='auto';document.getElementById('chatBtn').disabled=true;
+  addMsg(msg,'user');chatHist.push({role:'user',content:msg});
+  const tk=addMsg('Analisando...','ai');
+  const resp=await fetch('/admin/assistente/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({mensagem:msg,arquivo:arqAtual,historico:chatHist.slice(-10)})});
+  const data=await resp.json();tk.remove();
+  if(data.erro){addMsg('❌ '+data.erro,'ai');}
+  else{
+    addMsg(data.resposta,'ai');chatHist.push({role:'assistant',content:data.resposta});
+    const codeMatch=data.resposta.match(/```[\w]*\n([\s\S]+?)```/);
+    if(codeMatch&&arqAtual){
+      const d=document.createElement('div');d.style.cssText='padding:8px;text-align:right;';
+      const btn=document.createElement('button');btn.className='btn btn-sm btn-primary';btn.textContent='📝 Aplicar ao editor';
+      const code=codeMatch[1];btn.onclick=()=>{document.getElementById('codeEditor').value=code;btn.textContent='✅ Aplicado!';btn.disabled=true;};
+      d.appendChild(btn);document.getElementById('chatMessages').appendChild(d);
+    }
+  }
+  document.getElementById('chatBtn').disabled=false;inp.focus();
+}
+function limparChat(){chatHist=[];document.getElementById('chatMessages').innerHTML='<div style="text-align:center;padding:16px;color:var(--text-light);font-size:13px">Chat limpo.</div>';}
+async function verBackups(){const r=await fetch('/admin/assistente/backups');const d=await r.json();if(!d.backups.length){alert('Nenhum backup.');return;}alert('Backups:\n\n'+d.backups.map(b=>b.nome+' — '+b.data).join('\n'));}
+document.getElementById('chatInput').addEventListener('input',function(){this.style.height='auto';this.style.height=Math.min(this.scrollHeight,90)+'px';});
+</script>
+{% endblock %}

@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+{% block title %}Documentação{% endblock %}
+{% block content %}
+<h1 style="font-size:20px;font-weight:700;color:var(--primary);margin-bottom:20px">📁 Documentação da empresa</h1>
+
+<!-- Editais -->
+<div class="card">
+  <div class="card-title">📋 Editais cadastrados</div>
+  <p style="font-size:12px;color:var(--text-light);margin-bottom:14px">Cadastre os editais para que o sistema identifique os documentos exigidos e gere o ZIP automaticamente.</p>
+  <div style="border:2px dashed #b0bec5;border-radius:10px;padding:20px;text-align:center;cursor:pointer;background:#f8fafc;margin-bottom:14px" id="editalDZ" onclick="document.getElementById('editalFile').click()">
+    <div style="font-size:28px;margin-bottom:6px">📂</div>
+    <div style="font-size:14px;font-weight:700;color:var(--primary)">Clique para adicionar um edital (PDF)</div>
+    <div style="font-size:12px;color:var(--text-light);margin-top:3px">A IA vai extrair as exigências de habilitação automaticamente</div>
+  </div>
+  <input type="file" id="editalFile" accept=".pdf" style="display:none" onchange="enviarEdital(this)">
+  <div class="status" id="stEdital"></div>
+
+  <div id="listaEditais">
+    {% if editais %}
+      {% for ed in editais %}
+      <div style="border:1px solid var(--border);border-radius:var(--radius);padding:13px 15px;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start">
+        <div style="font-size:24px;flex-shrink:0">📋</div>
+        <div style="flex:1">
+          <div style="font-weight:700;font-size:13px;color:var(--primary)">{{ ed.nome }}</div>
+          <div style="font-size:12px;color:var(--text-light);margin-top:3px;line-height:1.6">
+            {% if ed.pregao %}<b>Pregão:</b> {{ ed.pregao }} &nbsp;{% endif %}
+            {% if ed.prefeitura %}<b>Prefeitura:</b> {{ ed.prefeitura }} &nbsp;{% endif %}
+            <b>Enviado:</b> {{ ed.created_at.strftime('%d/%m/%Y') }}
+            {% if ed.get_exigencias() %}<br><b>Docs exigidos:</b> {{ ed.get_exigencias()|join(', ') }}{% endif %}
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;flex-shrink:0">
+          <a href="{{ url_for('app_.edital_baixar', eid=ed.id) }}" class="btn btn-sm btn-outline">⬇ PDF</a>
+          <button onclick="gerarZipEdital({{ ed.id }})" class="btn btn-sm btn-primary">📦 ZIP</button>
+          <button onclick="excluirEdital({{ ed.id }})" class="btn btn-sm btn-danger">✕</button>
+        </div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-state" style="padding:20px"><div class="es-icon">📋</div><p>Nenhum edital cadastrado.</p></div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Gerar ZIP -->
+<div class="card" id="zipCard" {% if not editais %}style="display:none"{% endif %}>
+  <div class="card-title">📦 Gerar pacote de habilitação</div>
+  <div class="grid2" style="margin-bottom:14px;align-items:flex-end">
+    <div class="field">
+      <label>Edital</label>
+      <select id="zipEditalSel">
+        {% for ed in editais %}<option value="{{ ed.id }}">{{ ed.nome }}{% if ed.pregao %} — PE {{ ed.pregao }}{% endif %}</option>{% endfor %}
+      </select>
+    </div>
+    <button class="btn btn-primary" onclick="gerarZip()">📦 Gerar ZIP</button>
+  </div>
+  <div id="zipSteps" style="display:none;margin-top:8px"></div>
+  <div class="status" id="stZip"></div>
+</div>
+
+<!-- Documentos da empresa -->
+<div class="card">
+  <div class="card-title">🗂️ Documentos da empresa</div>
+  <p style="font-size:12px;color:var(--text-light);margin-bottom:16px">Mantenha os documentos atualizados. Serão incluídos automaticamente no ZIP de habilitação.</p>
+
+  {% set cats = [
+    ('juridica','📋 Habilitação Jurídica',[
+      ('contrato_social','Contrato Social / Estatuto + Alterações'),
+      ('cnpj_cartao','Cartão CNPJ'),
+      ('rg_cpf_socio','RG e CPF do(s) Sócio(s)'),
+    ]),
+    ('fiscal','💰 Regularidade Fiscal e Trabalhista',[
+      ('certidao_federal','Certidão Conjunta Receita Federal (CND Federal)'),
+      ('certidao_estadual','Certidão Negativa Estadual (SEFA)'),
+      ('certidao_municipal','Certidão Negativa Municipal (ISS)'),
+      ('certidao_fgts','Certidão FGTS (CRF)'),
+      ('certidao_trabalhista','Certidão Negativa Débitos Trabalhistas (CNDT)'),
+    ]),
+    ('economica','🏦 Qualificação Econômica',[
+      ('certidao_falencia','Certidão Negativa de Falência e Concordata'),
+      ('balanco','Balanço Patrimonial (último exercício)'),
+    ]),
+    ('tecnica','🏥 Habilitação Técnica',[
+      ('alvara_sanitario','Alvará Sanitário / Licença Sanitária'),
+      ('afe_anvisa','AFE - Autorização de Funcionamento (ANVISA)'),
+      ('atestado_capacidade','Atestado de Capacidade Técnica'),
+    ]),
+  ] %}
+
+  {% for cat_id, cat_label, cat_docs in cats %}
+  <div class="doc-cat-label">{{ cat_label }}</div>
+  {% for doc_key, doc_nome in cat_docs %}
+    {% set doc = docs.get(doc_key) %}
+    <div class="doc-item {% if doc %}ok{% endif %}" id="ditem-{{ doc_key }}">
+      <div class="doc-ico">📄</div>
+      <div class="doc-info">
+        <div class="doc-nome">{{ doc_nome }}</div>
+        <div class="doc-det">
+          {% if doc %}✅ {{ doc.filename }} · {{ (doc.tamanho/1024)|round(1) }} KB · {{ doc.updated_at.strftime('%d/%m/%Y') if doc.updated_at else '' }}
+          {% else %}Nenhum arquivo enviado{% endif %}
+        </div>
+      </div>
+      <div class="doc-status">{% if doc %}✅{% else %}⚠️{% endif %}</div>
+      <div class="doc-acoes">
+        {% if doc %}
+        <a href="{{ url_for('app_.doc_baixar', did=doc.id) }}" class="btn-doc-view">⬇ Baixar</a>
+        <button class="btn-doc-del" onclick="excluirDoc({{ doc.id }})">✕</button>
+        {% endif %}
+        <button class="btn-doc-upload" onclick="uploadDoc('{{ doc_key }}','{{ cat_id }}','{{ doc_nome }}')">📎 {% if doc %}Substituir{% else %}Enviar{% endif %}</button>
+      </div>
+    </div>
+  {% endfor %}
+  {% endfor %}
+
+  <div class="doc-cat-label">📄 Outros documentos</div>
+  {% for doc in docs.values() if doc.categoria == 'outros' %}
+  <div class="doc-item ok">
+    <div class="doc-ico">📄</div>
+    <div class="doc-info">
+      <div class="doc-nome">{{ doc.label }}</div>
+      <div class="doc-det">✅ {{ doc.filename }} · {{ (doc.tamanho/1024)|round(1) }} KB · {{ doc.updated_at.strftime('%d/%m/%Y') if doc.updated_at else '' }}</div>
+    </div>
+    <div class="doc-status">✅</div>
+    <div class="doc-acoes">
+      <a href="{{ url_for('app_.doc_baixar', did=doc.id) }}" class="btn-doc-view">⬇ Baixar</a>
+      <button class="btn-doc-del" onclick="excluirDoc({{ doc.id }})">✕</button>
+    </div>
+  </div>
+  {% else %}
+  <div style="color:var(--text-light);font-size:13px;padding:8px 0">Nenhum documento adicional.</div>
+  {% endfor %}
+  <div style="margin-top:14px">
+    <button class="btn btn-outline" onclick="uploadDoc('__outro','outros','')">+ Adicionar outro documento</button>
+  </div>
+</div>
+
+<!-- Input oculto para upload -->
+<input type="file" id="docFileInput" style="display:none" accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onchange="processarUpload(this)">
+<input type="hidden" id="docKeyAtual">
+<input type="hidden" id="docCatAtual">
+<input type="hidden" id="docLabelAtual">
+{% endblock %}
+{% block scripts %}
+<script>
+function uploadDoc(key, cat, label){
+  if(key==='__outro'){
+    const l=prompt('Nome/descrição deste documento:');
+    if(!l) return;
+    document.getElementById('docLabelAtual').value=l;
+    document.getElementById('docKeyAtual').value='outro_'+Date.now();
+    document.getElementById('docCatAtual').value='outros';
+  } else {
+    document.getElementById('docKeyAtual').value=key;
+    document.getElementById('docCatAtual').value=cat;
+    document.getElementById('docLabelAtual').value=label;
+  }
+  document.getElementById('docFileInput').click();
+}
+
+async function processarUpload(input){
+  const file=input.files[0]; if(!file) return;
+  const key=document.getElementById('docKeyAtual').value;
+  const cat=document.getElementById('docCatAtual').value;
+  const label=document.getElementById('docLabelAtual').value||file.name;
+  const fd=new FormData();
+  fd.append('arquivo',file); fd.append('doc_key',key);
+  fd.append('categoria',cat); fd.append('label',label);
+  const resp=await fetch('/documentacao/upload',{method:'POST',body:fd});
+  const r=await resp.json();
+  input.value='';
+  if(r.ok){ location.reload(); }
+  else { alert('Erro: '+(r.erro||'Falha no upload.')); }
+}
+
+async function excluirDoc(id){
+  if(!confirm('Excluir este documento?')) return;
+  const resp=await fetch(`/documentacao/excluir/${id}`,{method:'DELETE'});
+  const r=await resp.json();
+  if(r.ok) location.reload();
+  else alert('Erro: '+r.erro);
+}
+
+async function enviarEdital(input){
+  const file=input.files[0]; if(!file) return;
+  const fd=new FormData(); fd.append('edital',file);
+  const st=document.getElementById('stEdital');
+  st.className='status st-info'; st.style.display='block';
+  st.textContent='⏳ Enviando e analisando edital com IA...';
+  document.getElementById('editalDZ').style.opacity='.5';
+  const resp=await fetch('/edital/enviar',{method:'POST',body:fd});
+  const r=await resp.json();
+  document.getElementById('editalDZ').style.opacity='1';
+  input.value='';
+  if(r.ok){
+    st.className='status st-success';
+    st.textContent=`✅ Edital cadastrado! ${r.exigencias&&r.exigencias.length?'Docs exigidos: '+r.exigencias.join(', '):''} ${r.itens&&r.itens.length?'('+r.itens.length+' itens extraídos)':''}`;
+    setTimeout(()=>location.reload(), 2000);
+  } else {
+    st.className='status st-error'; st.textContent='❌ Erro: '+(r.erro||'Falha ao enviar.');
+  }
+}
+
+async function excluirEdital(id){
+  if(!confirm('Excluir este edital?')) return;
+  const resp=await fetch(`/edital/${id}/excluir`,{method:'DELETE'});
+  const r=await resp.json();
+  if(r.ok) location.reload();
+  else alert('Erro: '+r.erro);
+}
+
+function gerarZipEdital(id){ document.getElementById('zipEditalSel').value=id; gerarZip(); window.scrollTo({top:document.getElementById('zipCard').offsetTop-80,behavior:'smooth'}); }
+
+async function gerarZip(){
+  const id=document.getElementById('zipEditalSel').value;
+  if(!id){ alert('Selecione um edital.'); return; }
+  const steps=document.getElementById('zipSteps');
+  steps.style.display='block';
+  steps.innerHTML='<div class="zip-step active"><span class="zs-ico">⏳</span> Preparando documentos...</div>';
+  const stZip=document.getElementById('stZip');
+  stZip.style.display='none';
+  const resp=await fetch('/gerar-zip',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({edital_id:parseInt(id)})});
+  if(resp.ok){
+    const blob=await resp.blob();
+    steps.innerHTML='<div class="zip-step done"><span class="zs-ico">✅</span> ZIP gerado com sucesso!</div>';
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url;
+    const sel=document.getElementById('zipEditalSel');
+    a.download='Habilitacao_'+sel.options[sel.selectedIndex].text.replace(/[^a-z0-9]/gi,'_')+'.zip';
+    a.click(); URL.revokeObjectURL(url);
+    stZip.className='status st-success'; stZip.style.display='block'; stZip.textContent='✅ ZIP baixado com sucesso!';
+  } else {
+    steps.innerHTML='<div class="zip-step" style="color:var(--danger)"><span class="zs-ico">❌</span> Erro ao gerar ZIP.</div>';
+    const r=await resp.json().catch(()=>({erro:'Erro desconhecido'}));
+    stZip.className='status st-error'; stZip.style.display='block'; stZip.textContent='❌ '+(r.erro||'Erro ao gerar ZIP.');
+  }
+}
+</script>
+{% endblock %}

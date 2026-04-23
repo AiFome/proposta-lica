@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<div class="auth-page">
+  <div class="auth-card">
+    <div class="auth-logo"><div class="logo-icon">📄</div><h1>PropostaLic</h1><p>Faca login para continuar</p></div>
+    {% with messages = get_flashed_messages(with_categories=true) %}{% for cat,msg in messages %}<div class="flash flash-{{cat}}" style="margin-bottom:12px">{{msg}}</div>{% endfor %}{% endwith %}
+    <form method="POST">
+      <div class="field"><label>E-mail</label><input type="email" name="email" value="{{ email|default('') }}" required autofocus placeholder="seu@email.com"></div>
+      <div class="field"><label>Senha</label><input type="password" name="senha" required placeholder="••••••••"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <label style="display:flex;align-items:center;gap:6px;text-transform:none;font-size:13px;color:var(--text)"><input type="checkbox" name="lembrar"> Lembrar</label>
+        <a href="/esqueci-senha" style="font-size:13px">Esqueci a senha</a>
+      </div>
+      <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+    </form>
+    <div class="auth-footer">Nao tem conta? <a href="/registro">Cadastre-se gratis</a></div>
+  </div>
+</div>
+{% endblock %}

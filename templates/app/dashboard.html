@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="dash-welcome">Ola, {{ current_user.nome.split()[0] }}! 👋</div>
+
+{% if current_user.subscription_status == 'trial' and not current_user.trial_expirado %}
+<div class="card" style="border-left:4px solid var(--primary);background:var(--primary-light);margin-bottom:18px">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+    <div><div style="font-weight:700;color:var(--primary)">⏱ Periodo de teste ativo</div>
+    <div style="font-size:13px;color:var(--text-light)">Aproveite todas as funcionalidades. Contrate um plano para continuar.</div></div>
+    <a href="/pagamento/planos" class="btn btn-primary">Ver planos</a>
+  </div>
+</div>
+{% elif current_user.subscription_status == 'active' and current_user.plan %}
+<div class="card" style="border-left:4px solid var(--accent);background:var(--accent-light);margin-bottom:18px">
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px">
+    <div><div style="font-weight:700;color:var(--accent)">✅ Plano {{ current_user.plan.nome }} ativo</div>
+    <div style="font-size:13px;color:var(--text-light)">Valido ate {{ current_user.plan_end.strftime('%d/%m/%Y') if current_user.plan_end else 'Ativo' }}</div></div>
+    <a href="/pagamento/meu-plano" class="btn btn-outline">Gerenciar plano</a>
+  </div>
+</div>
+{% endif %}
+
+<div class="grid4" style="margin-bottom:20px">
+  <div class="stat-card"><div class="stat-label">📋 Editais</div><div class="stat-value">{{ editais|length }}</div></div>
+  <div class="stat-card"><div class="stat-label">📦 Produtos</div><div class="stat-value">{{ total_produtos }}</div></div>
+  <div class="stat-card"><div class="stat-label">📁 Documentos</div><div class="stat-value">{{ total_docs }}</div></div>
+  <div class="stat-card"><div class="stat-label">⚡ Status</div><div class="stat-value" style="font-size:18px">
+    {% if current_user.subscription_status == 'active' %}✅ Ativo{% elif current_user.subscription_status == 'trial' %}⏱ Trial{% else %}⛔ Expirado{% endif %}
+  </div></div>
+</div>
+
+<div class="card">
+  <div class="card-title">⚡ Acoes rapidas</div>
+  <div class="quick-actions">
+    <a href="/proposta" class="btn btn-primary">📋 Nova proposta</a>
+    <a href="/produtos" class="btn btn-outline">📦 Produtos</a>
+    <a href="/documentacao" class="btn btn-outline">📁 Documentacao</a>
+    <a href="/perfil" class="btn btn-outline">⚙️ Configuracoes</a>
+  </div>
+</div>
+
+{% if editais %}
+<div class="card">
+  <div class="card-title">📋 Editais recentes</div>
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Edital</th><th>Pregao</th><th>Prefeitura</th><th>Data</th><th>Acoes</th></tr></thead>
+      <tbody>
+        {% for ed in editais %}
+        <tr>
+          <td style="font-size:12px">{{ ed.nome }}</td>
+          <td>{{ ed.pregao or "—" }}</td>
+          <td>{{ ed.prefeitura or "—" }}</td>
+          <td style="font-size:12px">{{ ed.created_at.strftime('%d/%m/%Y') }}</td>
+          <td><a href="/proposta" class="btn btn-sm btn-outline">📝 Proposta</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="card"><div class="empty-state"><div class="es-icon">📋</div>
+  <p>Nenhum edital cadastrado. Va para <a href="/proposta">Proposta</a> para comecar.</p>
+</div></div>
+{% endif %}
+{% endblock %}

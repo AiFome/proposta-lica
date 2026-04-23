@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Recuperar senha{% endblock %}
+{% block content %}
+<div class="auth-page"><div class="auth-card">
+  <div class="auth-logo"><div class="logo-icon">🔑</div><h1>Recuperar senha</h1><p>Enviaremos um link por e-mail</p></div>
+  {% with messages = get_flashed_messages(with_categories=true) %}{% for cat,msg in messages %}<div class="flash flash-{{cat}}" style="margin-bottom:12px">{{msg}}</div>{% endfor %}{% endwith %}
+  <form method="POST">
+    <div class="field"><label>E-mail cadastrado</label><input type="email" name="email" required autofocus placeholder="seu@email.com"></div>
+    <button type="submit" class="btn btn-primary btn-block">Enviar link de recuperacao</button>
+  </form>
+  <div class="auth-footer"><a href="/login">← Voltar ao login</a></div>
+</div></div>
+{% endblock %}

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Admin — Configuracoes{% endblock %}
+{% block content %}
+<h1 style="font-size:18px;font-weight:700;color:var(--primary);margin-bottom:20px">⚙️ Configurações do sistema</h1>
+<div class="card">
+  <div class="card-title">🌐 Configurações gerais</div>
+  <form method="POST">
+    <div class="grid2">
+      <div class="field"><label>Nome do site</label><input type="text" name="site_nome" value="{{ cfgs.get('site_nome','PropostaLic') }}"></div>
+      <div class="field"><label>Slogan</label><input type="text" name="site_slogan" value="{{ cfgs.get('site_slogan','') }}"></div>
+    </div>
+    <div class="field" style="margin-top:12px">
+      <label>Duração do trial (segundos)</label>
+      <input type="number" name="trial_duration" value="{{ cfgs.get('trial_duration','3600') }}" min="60" max="86400">
+      <span class="text-muted">3600 = 1 hora · 7200 = 2 horas · 86400 = 24 horas</span>
+    </div>
+    <div style="display:flex;gap:24px;margin-top:14px;flex-wrap:wrap">
+      <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:14px;font-weight:400;color:var(--text)">
+        <input type="checkbox" name="cadastro_aberto" {% if cfgs.get('cadastro_aberto','true')=='true' %}checked{% endif %}>
+        Cadastro de novos usuários aberto
+      </label>
+      <label style="display:flex;align-items:center;gap:8px;text-transform:none;font-size:14px;font-weight:400;color:var(--text)">
+        <input type="checkbox" name="manutencao" {% if cfgs.get('manutencao','false')=='true' %}checked{% endif %}>
+        Modo manutenção ativo
+      </label>
+    </div>
+    <div style="margin-top:18px;text-align:right">
+      <button type="submit" class="btn btn-primary">💾 Salvar configurações</button>
+    </div>
+  </form>
+</div>
+
+<div class="card">
+  <div class="card-title">📊 Estatísticas do sistema</div>
+  <div style="font-size:13px;color:var(--text-light)">
+    Acesse <a href="{{ url_for('admin.dashboard') }}">Dashboard</a> para ver estatísticas detalhadas e
+    <a href="{{ url_for('admin.financeiro') }}">Financeiro</a> para relatórios de receita.
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">🤖 Assistente IA</div>
+  <p style="font-size:13px;color:var(--text-light);margin-bottom:14px">
+    O assistente IA usa a chave configurada em <code>ANTHROPIC_API_KEY</code> no arquivo <code>.env</code> do servidor.
+  </p>
+  <a href="{{ url_for('admin.assistente') }}" class="btn btn-primary">Abrir Assistente IA</a>
+</div>
+{% endblock %}

@@ -1,0 +1,13 @@
+{% extends "base.html" %}
+{% block title %}Nova senha{% endblock %}
+{% block content %}
+<div class="auth-page"><div class="auth-card">
+  <div class="auth-logo"><div class="logo-icon">🔒</div><h1>Nova senha</h1></div>
+  {% with messages = get_flashed_messages(with_categories=true) %}{% for cat,msg in messages %}<div class="flash flash-{{cat}}" style="margin-bottom:12px">{{msg}}</div>{% endfor %}{% endwith %}
+  <form method="POST">
+    <div class="field"><label>Nova senha</label><input type="password" name="senha" required placeholder="Min. 8 caracteres" autofocus></div>
+    <div class="field"><label>Confirmar nova senha</label><input type="password" name="confirmar_senha" required placeholder="Repita"></div>
+    <button type="submit" class="btn btn-primary btn-block">Salvar nova senha</button>
+  </form>
+</div></div>
+{% endblock %}

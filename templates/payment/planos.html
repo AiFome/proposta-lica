@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% block title %}Planos{% endblock %}
+{% block content %}
+<div class="planos-header">
+  <h1>Escolha seu plano</h1>
+  <p>Acesso completo a plataforma. Cancele quando quiser.</p>
+  <div class="periodo-toggle">
+    <button class="periodo-btn active" id="btnMensal" onclick="setPer('mensal')">Mensal</button>
+    <button class="periodo-btn" id="btnAnual" onclick="setPer('anual')">Anual <span class="desconto-badge">-17%</span></button>
+  </div>
+</div>
+<div class="pricing-grid">
+  {% for plan in planos %}
+  <div class="pricing-card {% if plan.destaque %}destaque{% endif %}">
+    {% if plan.destaque %}<div class="pricing-badge">Mais popular</div>{% endif %}
+    <div class="pricing-name">{{ plan.nome }}</div>
+    <div class="pricing-desc">{{ plan.descricao }}</div>
+    <div id="pm{{ plan.id }}">
+      <div class="pricing-price">R$ {{ "%.2f"|format(plan.preco_mensal)|replace(".",",") }}<span>/mes</span></div>
+    </div>
+    <div id="pa{{ plan.id }}" style="display:none">
+      <div class="pricing-price">R$ {{ "%.2f"|format(plan.preco_anual/12 if plan.preco_anual else plan.preco_mensal)|replace(".",",") }}<span>/mes</span></div>
+      {% if plan.preco_anual %}<div style="font-size:12px;color:var(--text-light)">R$ {{ "%.2f"|format(plan.preco_anual)|replace(".",",") }}/ano</div>{% endif %}
+    </div>
+    <div class="pricing-resources" style="margin:18px 0">
+      {% for r in plan.get_recursos() %}<div class="pricing-resource">✅ {{ r }}</div>{% endfor %}
+    </div>
+    {% if current_user.plan and current_user.plan.id == plan.id %}
+      <button class="btn btn-outline btn-block" disabled>✅ Plano atual</button>
+    {% else %}
+      <a href="/pagamento/checkout/{{ plan.slug }}/mensal" class="btn btn-primary btn-block" id="bm{{ plan.id }}">Assinar plano</a>
+      <a href="/pagamento/checkout/{{ plan.slug }}/anual" class="btn btn-primary btn-block" id="ba{{ plan.id }}" style="display:none">Assinar anual</a>
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+<div style="text-align:center;margin-top:28px;color:var(--text-light);font-size:13px">🔒 Pagamento seguro via Stripe. Cancele quando quiser.</div>
+{% if current_user.pode_usar %}<div style="text-align:center;margin-top:14px"><a href="/dashboard" style="font-size:13px">← Voltar ao sistema</a></div>{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+function setPer(p){
+  document.getElementById('btnMensal').classList.toggle('active',p==='mensal');
+  document.getElementById('btnAnual').classList.toggle('active',p==='anual');
+  document.querySelectorAll('[id^="pm"]').forEach(e=>e.style.display=p==='mensal'?'block':'none');
+  document.querySelectorAll('[id^="pa"]').forEach(e=>e.style.display=p==='anual'?'block':'none');
+  document.querySelectorAll('[id^="bm"]').forEach(e=>e.style.display=p==='mensal'?'block':'none');
+  document.querySelectorAll('[id^="ba"]').forEach(e=>e.style.display=p==='anual'?'block':'none');
+}
+</script>
+{% endblock %}

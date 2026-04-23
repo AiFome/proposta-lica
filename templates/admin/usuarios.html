@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Admin — Usuarios{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+  <h1 style="font-size:18px;font-weight:700;color:var(--primary)">👥 Usuarios</h1>
+</div>
+<div class="card" style="padding:14px 18px;margin-bottom:14px">
+  <form method="GET" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+    <div class="field" style="flex:1;min-width:200px;margin-bottom:0"><label>Buscar</label><input type="text" name="q" value="{{ q }}" placeholder="Nome, email, empresa..."></div>
+    <div class="field" style="margin-bottom:0"><label>Status</label>
+      <select name="status"><option value="">Todos</option><option value="trial" {% if status=="trial" %}selected{% endif %}>Trial</option><option value="active" {% if status=="active" %}selected{% endif %}>Ativo</option><option value="canceled" {% if status=="canceled" %}selected{% endif %}>Cancelado</option><option value="past_due" {% if status=="past_due" %}selected{% endif %}>Pendente</option></select>
+    </div>
+    <button type="submit" class="btn btn-primary">Filtrar</button>
+    <a href="/admin/usuarios" class="btn btn-outline">Limpar</a>
+  </form>
+</div>
+<div class="card">
+  <div class="table-wrap">
+    <table>
+      <thead><tr><th>Usuario</th><th>Empresa</th><th>Status</th><th>Plano</th><th>Cadastro</th><th>Ultimo login</th><th>Acoes</th></tr></thead>
+      <tbody>
+        {% for u in usuarios.items %}
+        <tr>
+          <td><div style="font-weight:600">{{ u.nome }}</div><div style="font-size:11px;color:var(--text-light)">{{ u.email }}</div></td>
+          <td style="font-size:12px">{{ u.empresa or "—" }}</td>
+          <td>{% set st,color=u.status_display %}<span class="badge badge-{{ 'green' if color=='green' else 'blue' if color=='blue' else 'yellow' if color=='orange' else 'gray' if color=='gray' else 'red' }}">{{ st }}</span>{% if not u.is_active %} <span class="badge badge-red">Bloqueado</span>{% endif %}</td>
+          <td style="font-size:12px">{{ u.plan.nome if u.plan else "—" }}</td>
+          <td style="font-size:11px">{{ u.created_at.strftime("%d/%m/%Y") }}</td>
+          <td style="font-size:11px">{{ u.last_login.strftime("%d/%m/%Y") if u.last_login else "—" }}</td>
+          <td><a href="/admin/usuarios/{{ u.id }}" class="btn btn-sm btn-outline">Ver</a></td>
+        </tr>
+        {% else %}<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-light)">Nenhum usuario encontrado.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if usuarios.pages > 1 %}
+  <div class="pagination">
+    {% if usuarios.has_prev %}<a href="?page={{ usuarios.prev_num }}&q={{ q }}&status={{ status }}" class="page-link">‹</a>{% endif %}
+    {% for p in usuarios.iter_pages() %}{% if p %}<a href="?page={{ p }}&q={{ q }}&status={{ status }}" class="page-link {% if p==usuarios.page %}active{% endif %}">{{ p }}</a>{% else %}<span class="page-link disabled">…</span>{% endif %}{% endfor %}
+    {% if usuarios.has_next %}<a href="?page={{ usuarios.next_num }}&q={{ q }}&status={{ status }}" class="page-link">›</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Admin — Dashboard{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px">
+  <h1 style="font-size:20px;font-weight:700;color:var(--primary)">📊 Painel Administrativo</h1>
+</div>
+<div class="admin-stats">
+  <div class="stat-card"><div class="stat-label">👥 Total usuarios</div><div class="stat-value">{{ stats.total_usuarios }}</div></div>
+  <div class="stat-card"><div class="stat-label">✅ Planos ativos</div><div class="stat-value" style="color:var(--accent)">{{ stats.usuarios_ativos }}</div></div>
+  <div class="stat-card"><div class="stat-label">⏱ Em trial</div><div class="stat-value" style="color:var(--primary)">{{ stats.usuarios_trial }}</div></div>
+  <div class="stat-card"><div class="stat-label">📅 Novos (7 dias)</div><div class="stat-value">{{ stats.novos_semana }}</div></div>
+  <div class="stat-card"><div class="stat-label">💰 Receita mes</div><div class="stat-value" style="font-size:20px">R$ {{ "%.2f"|format(stats.receita_mes)|replace(".",",") }}</div></div>
+  <div class="stat-card"><div class="stat-label">📋 Editais</div><div class="stat-value">{{ stats.total_editais }}</div></div>
+  <div class="stat-card"><div class="stat-label">📁 Documentos</div><div class="stat-value">{{ stats.total_docs }}</div></div>
+</div>
+<div class="grid2">
+  <div class="card">
+    <div class="card-title" style="display:flex;justify-content:space-between">👥 Usuarios recentes <a href="/admin/usuarios" class="btn btn-sm btn-outline">Ver todos</a></div>
+    <div class="table-wrap">
+      <table><thead><tr><th>Usuario</th><th>Status</th><th>Data</th></tr></thead><tbody>
+        {% for u in recentes %}
+        <tr>
+          <td><a href="/admin/usuarios/{{ u.id }}" style="font-weight:600">{{ u.nome }}</a><div style="font-size:11px;color:var(--text-light)">{{ u.email }}</div></td>
+          <td>{% set st,color=u.status_display %}<span class="badge badge-{{ 'green' if color=='green' else 'blue' if color=='blue' else 'yellow' if color=='orange' else 'gray' if color=='gray' else 'red' }}">{{ st }}</span></td>
+          <td style="font-size:11px">{{ u.created_at.strftime("%d/%m/%Y") }}</td>
+        </tr>
+        {% endfor %}
+      </tbody></table>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">🔍 Atividade recente</div>
+    {% for log in logs[:10] %}
+    <div style="display:flex;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px">
+      <span style="color:var(--text-light);white-space:nowrap">{{ log.created_at.strftime("%d/%m %H:%M") }}</span>
+      <span style="font-weight:600;color:var(--primary)">{{ log.acao }}</span>
+      <span style="color:var(--text-light);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ log.detalhe }}</span>
+    </div>
+    {% else %}<div class="empty-state" style="padding:20px"><p>Nenhuma acao registrada.</p></div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

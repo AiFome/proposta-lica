@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Produtos{% endblock %}
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+  <h1 style="font-size:20px;font-weight:700;color:var(--primary)">📦 Catálogo de produtos</h1>
+  <button class="btn btn-primary" onclick="abrirModal()">+ Novo produto</button>
+</div>
+
+<div style="margin-bottom:14px">
+  <form method="GET" style="display:flex;gap:10px">
+    <input type="text" name="q" value="{{ q }}" placeholder="🔍 Buscar por nome, fabricante ou categoria..." style="flex:1">
+    <button type="submit" class="btn btn-outline">Buscar</button>
+    {% if q %}<a href="{{ url_for('app_.produtos') }}" class="btn btn-outline">✕ Limpar</a>{% endif %}
+  </form>
+</div>
+
+{% if produtos %}
+<div id="listaProdutos">
+  {% for p in produtos %}
+  <div style="background:#fff;border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px">
+    <div style="font-size:26px;flex-shrink:0">💊</div>
+    <div style="flex:1">
+      <div style="font-weight:700;font-size:14px;color:var(--primary)">{{ p.nome }}</div>
+      <div style="font-size:12px;color:var(--text-light);margin-top:3px;line-height:1.6">
+        {% if p.fabricante %}<b>Fabricante:</b> {{ p.fabricante }} &nbsp;{% endif %}
+        {% if p.gramatura %}<b>Gramatura:</b> {{ p.gramatura }} &nbsp;{% endif %}
+        {% if p.categoria %}<b>Categoria:</b> {{ p.categoria }} &nbsp;{% endif %}
+        {% if p.anvisa %}<b>ANVISA:</b> {{ p.anvisa }} &nbsp;{% endif %}
+        {% if p.codigo %}<b>Cód:</b> {{ p.codigo }}{% endif %}
+        {% if p.obs %}<br><b>Obs:</b> {{ p.obs }}{% endif %}
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:5px;flex-shrink:0">
+      <button class="btn btn-sm btn-outline" onclick="editarProduto({{ p | tojson }})">✏️ Editar</button>
+      <button class="btn btn-sm btn-danger" onclick="excluirProduto({{ p.id }})">🗑️ Excluir</button>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="es-icon">📦</div>
+  <p>{% if q %}Nenhum produto encontrado para "{{ q }}".{% else %}Nenhum produto cadastrado ainda.<br>Clique em "+ Novo produto" para começar.{% endif %}</p>
+</div>
+{% endif %}
+
+<!-- Modal -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="modal-title">📦 <span id="mTit">Novo produto</span></div>
+    <input type="hidden" id="pid">
+    <div class="field" style="grid-column:1/-1"><label>Nome do produto *</label><input type="text" id="pnome" placeholder="Ex: Nutren Senior"></div>
+    <div class="grid3" style="margin-top:12px">
+      <div class="field"><label>Fabricante *</label><input type="text" id="pfab" placeholder="Ex: Nestlé"></div>
+      <div class="field"><label>Gramatura/Volume</label><input type="text" id="pgram" placeholder="Ex: 740g, 1000ml"></div>
+      <div class="field"><label>Categoria</label>
+        <select id="pcat">
+          <option value="">Selecione...</option>
+          <option>Suplemento alimentar</option><option>Dieta enteral</option>
+          <option>Fórmula infantil</option><option>Espessante</option><option>Outro</option>
+        </select>
+      </div>
+    </div>
+    <div class="grid2" style="margin-top:12px">
+      <div class="field"><label>Registro ANVISA</label><input type="text" id="panvisa" placeholder="Ex: 6.4816.0001.001-5"></div>
+      <div class="field"><label>Código EAN/Referência</label><input type="text" id="pcod" placeholder="Opcional"></div>
+    </div>
+    <div class="field" style="margin-top:12px"><label>Observações</label><textarea id="pobs" rows="2" placeholder="Sabor, composição, etc."></textarea></div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="fecharModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvar()">💾 Salvar produto</button>
+    </div>
+    <div class="status" id="stProd"></div>
+  </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+function abrirModal(){
+  ['pid','pnome','pfab','pgram','panvisa','pcod','pobs'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('pcat').value='';
+  document.getElementById('mTit').textContent='Novo produto';
+  document.getElementById('stProd').style.display='none';
+  document.getElementById('modal').classList.add('open');
+  document.getElementById('pnome').focus();
+}
+function editarProduto(p){
+  document.getElementById('pid').value=p.id||'';
+  document.getElementById('pnome').value=p.nome||'';
+  document.getElementById('pfab').value=p.fabricante||'';
+  document.getElementById('pgram').value=p.gramatura||'';
+  document.getElementById('pcat').value=p.categoria||'';
+  document.getElementById('panvisa').value=p.anvisa||'';
+  document.getElementById('pcod').value=p.codigo||'';
+  document.getElementById('pobs').value=p.obs||'';
+  document.getElementById('mTit').textContent='Editar produto';
+  document.getElementById('stProd').style.display='none';
+  document.getElementById('modal').classList.add('open');
+}
+function fecharModal(){ document.getElementById('modal').classList.remove('open'); }
+async function salvar(){
+  const nome=document.getElementById('pnome').value.trim();
+  const fab=document.getElementById('pfab').value.trim();
+  if(!nome||!fab){ showSt('Nome e fabricante são obrigatórios.','st-error'); return; }
+  const btn=event.currentTarget; btn.disabled=true;
+  const data={
+    id:document.getElementById('pid').value||null, nome, fabricante:fab,
+    gramatura:document.getElementById('pgram').value.trim(),
+    categoria:document.getElementById('pcat').value,
+    anvisa:document.getElementById('panvisa').value.trim(),
+    codigo:document.getElementById('pcod').value.trim(),
+    obs:document.getElementById('pobs').value.trim(),
+  };
+  const resp=await fetch('/produtos/salvar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)});
+  const r=await resp.json();
+  btn.disabled=false;
+  if(r.ok){ fecharModal(); location.reload(); }
+  else { showSt(r.erro||'Erro ao salvar.','st-error'); }
+}
+async function excluirProduto(id){
+  if(!confirm('Excluir este produto?')) return;
+  const resp=await fetch(`/produtos/excluir/${id}`,{method:'DELETE'});
+  const r=await resp.json();
+  if(r.ok) location.reload();
+  else alert('Erro ao excluir: '+r.erro);
+}
+function showSt(msg,cls){ const e=document.getElementById('stProd'); e.textContent=msg; e.className='status '+cls; e.style.display='block'; }
+document.getElementById('modal').addEventListener('click',e=>{if(e.target===document.getElementById('modal'))fecharModal();});
+</script>
+{% endblock %}

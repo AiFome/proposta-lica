@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Verificacao 2FA{% endblock %}
+{% block content %}
+<div class="auth-page"><div class="auth-card">
+  <div class="auth-logo"><div class="logo-icon">🛡️</div><h1>Verificacao em 2 etapas</h1><p>Digite o codigo do seu aplicativo autenticador</p></div>
+  {% with messages = get_flashed_messages(with_categories=true) %}{% for cat,msg in messages %}<div class="flash flash-{{cat}}" style="margin-bottom:12px">{{msg}}</div>{% endfor %}{% endwith %}
+  <form method="POST">
+    <div class="field"><label>Codigo de 6 digitos</label>
+      <input type="text" name="codigo" required placeholder="000000" maxlength="6" autofocus autocomplete="one-time-code" style="text-align:center;font-size:22px;letter-spacing:8px;font-family:monospace">
+    </div>
+    <button type="submit" class="btn btn-primary btn-block">Verificar</button>
+  </form>
+  <div class="auth-footer"><a href="/login">← Voltar</a></div>
+</div></div>
+{% endblock %}
