@@ -7,7 +7,7 @@
   <button class="perfil-tab" onclick="showTab('empresa',this)">🏢 Empresa</button>
   <button class="perfil-tab" onclick="showTab('senha',this)">🔒 Senha</button>
   <button class="perfil-tab" onclick="showTab('modelo',this)">📝 Modelo proposta</button>
-  <button class="perfil-tab" onclick="showTab('api',this)">🔑 API Key</button>
+
 </div>
 
 <div class="perfil-section active" id="tab-dados">
@@ -93,24 +93,6 @@ Declaramos, sob as penas da lei, que esta proposta atende a todos os requisitos 
   </div>
 </div>
 
-<div class="perfil-section" id="tab-api">
-  <div class="card">
-    <div class="card-title">🔑 Chave de API Anthropic (Claude)</div>
-    <div style="background:var(--primary-light);border-radius:var(--radius);padding:12px 14px;margin-bottom:16px;font-size:13px;color:var(--primary)">
-      Necessaria para analise de editais por IA e assistente virtual. Obtenha em <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a>. Armazenada de forma criptografada.
-    </div>
-    <form method="POST" style="max-width:500px">
-      <input type="hidden" name="acao" value="empresa_config">
-      {% set cfg = current_user.config %}
-      <div class="field">
-        <label>Chave de API</label>
-        <input type="password" name="anthropic_key" placeholder="sk-ant-api03-..." value="{{ '••••••••' if cfg and cfg.anthropic_key_enc else '' }}">
-        {% if cfg and cfg.anthropic_key_enc %}<span class="text-muted" style="color:var(--accent)">✅ Chave configurada. Digite nova para substituir.</span>{% endif %}
-      </div>
-      <div style="margin-top:14px"><button type="submit" class="btn btn-primary">💾 Salvar chave</button></div>
-    </form>
-  </div>
-</div>
 {% endblock %}
 {% block scripts %}
 <script>
