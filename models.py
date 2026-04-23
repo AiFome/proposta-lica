@@ -148,8 +148,8 @@ class UserConfig(db.Model):
                 'cpfrg': self.cpfrg, 'modelo_validade': self.modelo_validade,
                 'modelo_prazo': self.modelo_prazo, 'modelo_local': self.modelo_local,
                 'modelo_decl': self.modelo_decl, 'modelo_obs': self.modelo_obs,
-                'ordem_produto': self.ordem_produto or 'nome,fabricante,gramatura',
-                'separador_produto': self.separador_produto or ' / '}
+                'ordem_produto': getattr(self, 'ordem_produto', None) or 'nome,fabricante,gramatura',
+                'separador_produto': getattr(self, 'separador_produto', None) or ' / '}
 
 
 class UserDocument(db.Model):

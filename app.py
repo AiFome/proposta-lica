@@ -21,7 +21,11 @@ def create_app():
     app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
     app.config['PERMANENT_SESSION_LIFETIME'] = int(os.environ.get('PERMANENT_SESSION_LIFETIME', 86400))
     app.config['MAX_CONTENT_LENGTH'] = 52428800
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///proposta_lic.db')
+    # Render usa postgres:// mas SQLAlchemy exige postgresql://
+    db_url = os.environ.get('DATABASE_URL', 'sqlite:///proposta_lic.db')
+    if db_url.startswith('postgres://'):
+        db_url = db_url.replace('postgres://', 'postgresql://', 1)
+    app.config['SQLALCHEMY_DATABASE_URI'] = db_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {'pool_pre_ping': True, 'pool_recycle': 300}
     app.config['MAIL_SERVER']   = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
@@ -86,6 +90,7 @@ def create_app():
     with app.app_context():
         db.create_all()
         _dados_iniciais()
+        _migrar_banco()
 
     return app
 
@@ -126,6 +131,27 @@ def _dados_iniciais():
         if not SiteConfig.query.filter_by(chave=chave).first():
             db.session.add(SiteConfig(chave=chave, valor=valor, tipo=tipo))
     db.session.commit()
+
+
+def _migrar_banco():
+    """Adiciona colunas novas sem quebrar o banco existente."""
+    try:
+        from sqlalchemy import text
+        with db.engine.connect() as conn:
+            # Adicionar colunas novas na user_configs se não existirem
+            colunas_novas = [
+                ("user_configs", "ordem_produto",     "VARCHAR(100) DEFAULT 'nome,fabricante,gramatura'"),
+                ("user_configs", "separador_produto",  "VARCHAR(20)  DEFAULT ' / '"),
+            ]
+            for tabela, coluna, tipo in colunas_novas:
+                try:
+                    conn.execute(text(f"ALTER TABLE {tabela} ADD COLUMN IF NOT EXISTS {coluna} {tipo}"))
+                    conn.commit()
+                except Exception:
+                    conn.rollback()
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f'Migração: {e}')
 
 
 def requer_plano(f):

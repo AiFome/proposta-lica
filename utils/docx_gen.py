@@ -146,7 +146,6 @@ def _tabela_itens(itens, ordem=None, sep=None):
         for campo in ordem:
             v = campo_map.get(campo.strip(),'')
             if v: partes.append(v)
-        sep = _get_sep(modelo) if 'modelo' in dir() else ' / '
         rows_i += row(
             cel(safe(it.get('num')),                           w=W['num'],     jc='center', sz=15),
             cel(safe(it.get('desc')),                          w=W['desc'],    jc='both',   sz=14),
