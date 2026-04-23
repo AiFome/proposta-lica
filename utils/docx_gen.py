@@ -124,7 +124,9 @@ def _rodape_texto(empresa, edital, modelo):
         par(f'ENDERECO: {end}', sz=20, jc='center', after=40),
     ])
 
-def _tabela_itens(itens):
+def _tabela_itens(itens, ordem=None, sep=None):
+    ordem = ordem or ['nome','fabricante','gramatura']
+    sep = sep or ' / '
     W = {'num':700,'desc':5500,'qtd':700,'unid':900,'produto':2900,'vunit':1900,'vtotal':1940}
     TW = sum(W.values())
     hdr = row(
@@ -139,13 +141,18 @@ def _tabela_itens(itens):
     rows_i = ''
     for it in itens:
         p = it.get('produto') or {}
-        partes = [x for x in [safe(p.get('nome')), safe(p.get('fabricante')), safe(p.get('gramatura'))] if x]
+        partes = []
+        campo_map = {'nome': safe(p.get('nome')), 'fabricante': safe(p.get('fabricante')), 'gramatura': safe(p.get('gramatura'))}
+        for campo in ordem:
+            v = campo_map.get(campo.strip(),'')
+            if v: partes.append(v)
+        sep = _get_sep(modelo) if 'modelo' in dir() else ' / '
         rows_i += row(
             cel(safe(it.get('num')),                           w=W['num'],     jc='center', sz=15),
             cel(safe(it.get('desc')),                          w=W['desc'],    jc='both',   sz=14),
             cel(safe(it.get('qtd')),                           w=W['qtd'],     jc='center', sz=15),
             cel(safe(it.get('unidNorm') or it.get('unid')),   w=W['unid'],    jc='center', sz=15),
-            cel(' / '.join(partes),                            w=W['produto'], jc='center', sz=15),
+            cel(sep.join(partes),                              w=W['produto'], jc='center', sz=15),
             cel('R$ ',                                         w=W['vunit'],   jc='center', sz=15),
             cel('R$ ',                                         w=W['vtotal'],  jc='center', sz=15),
         )
@@ -237,7 +244,7 @@ def modelo_padrao(empresa, edital, itens, modelo):
         par('', sz=16, after=60),
     ])
 
-    tbl  = _tabela_itens(itens)
+    tbl  = _tabela_itens(itens, _parse_ordem(modelo), _get_sep(modelo))
     rod  = _rodape_texto(empresa, edital, modelo)
     ns   = ('xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '
             'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"')
@@ -281,7 +288,7 @@ def modelo_formal(empresa, edital, itens, modelo):
         par(f'Plataforma: {safe(edital.get("plataforma"))}', sz=18, jc='center', after=20),
         par(f'Objeto: {safe(edital.get("objeto"))}', sz=18, jc='center', after=80),
     ])
-    tbl = _tabela_itens(itens)
+    tbl = _tabela_itens(itens, _parse_ordem(modelo), _get_sep(modelo))
     rod = _rodape_texto(empresa, edital, modelo)
     ns  = ('xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '
            'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"')
@@ -309,7 +316,7 @@ def modelo_minimalista(empresa, edital, itens, modelo):
         par(f'PROPOSTA COMERCIAL — PREGAO N {safe(edital.get("pregao"))} — {pref}', bold=True, sz=20, jc='center', after=10),
         par(f'Plataforma: {safe(edital.get("plataforma"))}   |   Objeto: {safe(edital.get("objeto"))[:100]}', sz=16, jc='center', after=40),
     ])
-    tbl = _tabela_itens(itens)
+    tbl = _tabela_itens(itens, _parse_ordem(modelo), _get_sep(modelo))
     rod = _rodape_texto(empresa, edital, modelo)
     ns  = ('xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships" '
            'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"')
@@ -329,6 +336,17 @@ MODELOS = {
     'formal':      ('Formal', 'Cabeçalho centralizado clássico para licitações formais', modelo_formal),
     'minimalista': ('Minimalista', 'Layout compacto, ideal para editais com muitos itens', modelo_minimalista),
 }
+
+def _parse_ordem(modelo):
+    """Converte a string de ordem 'nome,fabricante,gramatura' em lista."""
+    if not modelo: return ['nome','fabricante','gramatura']
+    ordem_str = modelo.get('ordem_produto','') or 'nome,fabricante,gramatura'
+    return [x.strip() for x in ordem_str.split(',') if x.strip()]
+
+def _get_sep(modelo):
+    """Retorna o separador configurado."""
+    if not modelo: return ' / '
+    return modelo.get('separador_produto','') or ' / '
 
 def gerar_docx(empresa, edital, itens, modelo=None, estilo='padrao'):
     empresa = empresa or {}

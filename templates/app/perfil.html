@@ -7,6 +7,7 @@
   <button class="perfil-tab" onclick="showTab('empresa',this)">🏢 Empresa</button>
   <button class="perfil-tab" onclick="showTab('senha',this)">🔒 Senha</button>
   <button class="perfil-tab" onclick="showTab('modelo',this)">📝 Modelo proposta</button>
+  <button class="perfil-tab" onclick="showTab('produto',this)">📦 Exibição do produto</button>
 
 </div>
 
@@ -93,9 +94,95 @@ Declaramos, sob as penas da lei, que esta proposta atende a todos os requisitos 
   </div>
 </div>
 
+<!-- EXIBIÇÃO DO PRODUTO -->
+<div class="perfil-section" id="tab-produto">
+  <div class="card">
+    <div class="card-title">📦 Ordem dos campos do produto na proposta</div>
+    <p style="font-size:13px;color:var(--text-light);margin-bottom:20px">
+      Arraste os campos para definir a ordem em que aparecerão na coluna <strong>PRODUTO</strong> da proposta gerada.<br>
+      Exemplo: <em>Nestlé / Nutren Sênior / 740g</em> ou <em>Nutren Sênior / 740g / Nestlé</em>
+    </p>
+
+    <!-- Preview -->
+    <div style="background:var(--primary-light);border:1px solid #aecbf0;border-radius:var(--radius);padding:14px 18px;margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;color:var(--primary);text-transform:uppercase;margin-bottom:8px">Prévia — como ficará na proposta:</div>
+      <div style="font-size:14px;color:var(--primary);font-weight:600" id="ordemPreview">carregando...</div>
+      <div style="font-size:12px;color:var(--text-light);margin-top:4px">Campo PRODUTO na tabela da proposta</div>
+    </div>
+
+    <!-- Drag and drop -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:12px;font-weight:700;color:var(--text-light);text-transform:uppercase;margin-bottom:10px">Arraste para reordenar:</div>
+      <div id="camposOrdem" style="display:flex;flex-direction:column;gap:8px;max-width:400px">
+        <div class="campo-drag" data-campo="nome" draggable="true">
+          <span class="drag-handle">⠿</span>
+          <span class="campo-icon">📦</span>
+          <span class="campo-label">Nome do produto</span>
+          <span class="campo-exemplo">ex: Nutren Sênior</span>
+        </div>
+        <div class="campo-drag" data-campo="fabricante" draggable="true">
+          <span class="drag-handle">⠿</span>
+          <span class="campo-icon">🏭</span>
+          <span class="campo-label">Fabricante / Marca</span>
+          <span class="campo-exemplo">ex: Nestlé</span>
+        </div>
+        <div class="campo-drag" data-campo="gramatura" draggable="true">
+          <span class="drag-handle">⠿</span>
+          <span class="campo-icon">⚖️</span>
+          <span class="campo-label">Gramatura / Volume</span>
+          <span class="campo-exemplo">ex: 740g</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Separador configurável -->
+    <div class="field" style="max-width:300px;margin-bottom:20px">
+      <label>Separador entre os campos</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px" id="separadores">
+        <button type="button" class="sep-btn active" data-sep=" / " onclick="setSep(this)">Barra ( / )</button>
+        <button type="button" class="sep-btn" data-sep=" — " onclick="setSep(this)">Traço ( — )</button>
+        <button type="button" class="sep-btn" data-sep=" | " onclick="setSep(this)">Pipe ( | )</button>
+        <button type="button" class="sep-btn" data-sep=" - " onclick="setSep(this)">Hífen ( - )</button>
+        <button type="button" class="sep-btn" data-sep=" " onclick="setSep(this)">Espaço</button>
+      </div>
+    </div>
+
+    <!-- Salvar -->
+    <form method="POST" id="formOrdem" onsubmit="prepararOrdem(event)">
+      <input type="hidden" name="acao" value="modelo">
+      <input type="hidden" name="ordem_produto" id="ordemProdutoInput" value="nome,fabricante,gramatura">
+      <input type="hidden" name="separador_produto" id="separadorInput" value=" / ">
+      <!-- Campos modelo (preservar valores existentes) -->
+      {% set cfg = current_user.config %}
+      <input type="hidden" name="modelo_validade" value="{{ cfg.modelo_validade if cfg else '' }}">
+      <input type="hidden" name="modelo_prazo" value="{{ cfg.modelo_prazo if cfg else '' }}">
+      <input type="hidden" name="modelo_local" value="{{ cfg.modelo_local if cfg else '' }}">
+      <input type="hidden" name="modelo_decl" value="{{ cfg.modelo_decl if cfg else '' }}">
+      <input type="hidden" name="modelo_obs" value="{{ cfg.modelo_obs if cfg else '' }}">
+      <button type="submit" class="btn btn-primary">💾 Salvar configuração</button>
+    </form>
+    <div class="status" id="stOrdem"></div>
+  </div>
+</div>
+
+<style>
+.campo-drag{display:flex;align-items:center;gap:10px;padding:12px 14px;background:#fff;border:1.5px solid var(--border);border-radius:var(--radius);cursor:grab;transition:all .15s;user-select:none}
+.campo-drag:active{cursor:grabbing}
+.campo-drag.drag-over{border-color:var(--primary);background:var(--primary-light);transform:scale(1.02)}
+.campo-drag.dragging{opacity:.4;border-style:dashed}
+.drag-handle{font-size:18px;color:var(--text-light);cursor:grab;flex-shrink:0}
+.campo-icon{font-size:18px;flex-shrink:0}
+.campo-label{font-weight:700;font-size:13px;color:var(--text);flex:1}
+.campo-exemplo{font-size:11px;color:var(--text-light);font-style:italic}
+.sep-btn{padding:5px 12px;border:1.5px solid var(--border);border-radius:6px;background:#fff;font-size:12px;cursor:pointer;transition:all .15s;font-family:inherit}
+.sep-btn:hover{border-color:var(--primary);color:var(--primary)}
+.sep-btn.active{border-color:var(--primary);background:var(--primary-light);color:var(--primary);font-weight:700}
+</style>
+
 {% endblock %}
 {% block scripts %}
 <script>
+// ── Tabs ─────────────────────────────────────────────────
 function showTab(id,btn){
   document.querySelectorAll(".perfil-section").forEach(s=>s.classList.remove("active"));
   document.querySelectorAll(".perfil-tab").forEach(b=>b.classList.remove("active"));
@@ -103,5 +190,130 @@ function showTab(id,btn){
 }
 const hash=location.hash.replace("#","");
 if(hash){ const btn=document.querySelector(`[onclick*="'${hash}'"]`); if(btn) btn.click(); }
+
+// ── Drag and drop ordem do produto ───────────────────────
+let dragEl = null;
+let separadorAtual = ' / ';
+
+const exemplos = {
+  nome: 'Nutren Sênior',
+  fabricante: 'Nestlé',
+  gramatura: '740g'
+};
+
+function getOrdem(){
+  return [...document.querySelectorAll('.campo-drag')].map(el=>el.dataset.campo);
+}
+
+function atualizarPreview(){
+  const ordem = getOrdem();
+  const partes = ordem.map(c => exemplos[c]).filter(Boolean);
+  document.getElementById('ordemPreview').textContent = partes.join(separadorAtual);
+  document.getElementById('ordemProdutoInput').value = ordem.join(',');
+}
+
+function setSep(btn){
+  document.querySelectorAll('.sep-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  separadorAtual = btn.dataset.sep;
+  document.getElementById('separadorInput').value = separadorAtual;
+  atualizarPreview();
+}
+
+function prepararOrdem(e){
+  document.getElementById('ordemProdutoInput').value = getOrdem().join(',');
+  document.getElementById('separadorInput').value = separadorAtual;
+}
+
+// Drag events
+document.addEventListener('DOMContentLoaded', () => {
+  // Carregar ordem salva
+  fetch('/api/modelo').then(r=>r.json()).then(d=>{
+    const ordem = (d.ordem_produto||'nome,fabricante,gramatura').split(',');
+    const sep   = d.separador_produto || ' / ';
+    const cont  = document.getElementById('camposOrdem');
+    if(!cont) return;
+
+    // Reordenar os elementos conforme a ordem salva
+    const els = {};
+    cont.querySelectorAll('.campo-drag').forEach(el=>{ els[el.dataset.campo]=el; });
+    ordem.forEach(campo=>{ if(els[campo]) cont.appendChild(els[campo]); });
+
+    // Ativar separador correto
+    separadorAtual = sep;
+    document.querySelectorAll('.sep-btn').forEach(b=>{
+      b.classList.toggle('active', b.dataset.sep === sep);
+    });
+    document.getElementById('separadorInput').value = sep;
+    atualizarPreview();
+  }).catch(()=>atualizarPreview());
+
+  // Configurar drag and drop
+  const cont = document.getElementById('camposOrdem');
+  if(!cont) return;
+
+  cont.querySelectorAll('.campo-drag').forEach(el=>{
+    el.addEventListener('dragstart', e=>{
+      dragEl = el;
+      setTimeout(()=>el.classList.add('dragging'), 0);
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    el.addEventListener('dragend', ()=>{
+      el.classList.remove('dragging');
+      cont.querySelectorAll('.campo-drag').forEach(e=>e.classList.remove('drag-over'));
+      dragEl = null;
+      atualizarPreview();
+    });
+    el.addEventListener('dragover', e=>{
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      if(dragEl && dragEl !== el){
+        el.classList.add('drag-over');
+        const rect = el.getBoundingClientRect();
+        const meio = rect.top + rect.height/2;
+        if(e.clientY < meio){
+          cont.insertBefore(dragEl, el);
+        } else {
+          cont.insertBefore(dragEl, el.nextSibling);
+        }
+      }
+    });
+    el.addEventListener('dragleave', ()=>el.classList.remove('drag-over'));
+    el.addEventListener('drop', e=>{
+      e.preventDefault();
+      el.classList.remove('drag-over');
+      atualizarPreview();
+    });
+
+    // Touch support (mobile)
+    let touchY = 0;
+    el.addEventListener('touchstart', e=>{
+      dragEl = el;
+      touchY = e.touches[0].clientY;
+      el.style.opacity = '0.6';
+    }, {passive:true});
+    el.addEventListener('touchmove', e=>{
+      e.preventDefault();
+      const y = e.touches[0].clientY;
+      const all = [...cont.querySelectorAll('.campo-drag')];
+      all.forEach(other=>{
+        if(other === dragEl) return;
+        const rect = other.getBoundingClientRect();
+        if(y > rect.top && y < rect.bottom){
+          if(y < rect.top + rect.height/2){
+            cont.insertBefore(dragEl, other);
+          } else {
+            cont.insertBefore(dragEl, other.nextSibling);
+          }
+        }
+      });
+    }, {passive:false});
+    el.addEventListener('touchend', ()=>{
+      el.style.opacity = '1';
+      dragEl = null;
+      atualizarPreview();
+    });
+  });
+});
 </script>
 {% endblock %}

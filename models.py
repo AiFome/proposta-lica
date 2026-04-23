@@ -137,6 +137,8 @@ class UserConfig(db.Model):
     modelo_decl    = db.Column(db.Text)
     modelo_obs     = db.Column(db.Text)
     anthropic_key_enc = db.Column(db.Text)
+    ordem_produto      = db.Column(db.String(100), default='nome,fabricante,gramatura')
+    separador_produto  = db.Column(db.String(20),  default=' / ')
     updated_at     = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     user           = db.relationship('User', back_populates='config')
     def to_dict(self):
@@ -145,7 +147,9 @@ class UserConfig(db.Model):
                 'endereco': self.endereco, 'banco': self.banco, 'representante': self.representante,
                 'cpfrg': self.cpfrg, 'modelo_validade': self.modelo_validade,
                 'modelo_prazo': self.modelo_prazo, 'modelo_local': self.modelo_local,
-                'modelo_decl': self.modelo_decl, 'modelo_obs': self.modelo_obs}
+                'modelo_decl': self.modelo_decl, 'modelo_obs': self.modelo_obs,
+                'ordem_produto': self.ordem_produto or 'nome,fabricante,gramatura',
+                'separador_produto': self.separador_produto or ' / '}
 
 
 class UserDocument(db.Model):

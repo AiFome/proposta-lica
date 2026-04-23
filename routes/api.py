@@ -43,9 +43,11 @@ def modelo():
         return jsonify({'validade':'60 (SESSENTA) DIAS, A CONTAR DA DATA DA APRESENTACAO.',
                         'prazo':'CONFORME EDITAL.','local':'CONFORME EDITAL.','decl':'','obs':''})
     return jsonify({
-        'validade': cfg.modelo_validade or '60 (SESSENTA) DIAS, A CONTAR DA DATA DA APRESENTACAO.',
-        'prazo':    cfg.modelo_prazo    or 'CONFORME EDITAL.',
-        'local':    cfg.modelo_local    or 'CONFORME EDITAL.',
-        'decl':     cfg.modelo_decl     or '',
-        'obs':      cfg.modelo_obs      or '',
+        'validade':       cfg.modelo_validade or '60 (SESSENTA) DIAS, A CONTAR DA DATA DA APRESENTACAO.',
+        'prazo':          cfg.modelo_prazo    or 'CONFORME EDITAL.',
+        'local':          cfg.modelo_local    or 'CONFORME EDITAL.',
+        'decl':           cfg.modelo_decl     or '',
+        'obs':            cfg.modelo_obs      or '',
+        'ordem_produto':     cfg.ordem_produto    or 'nome,fabricante,gramatura',
+        'separador_produto': cfg.separador_produto or ' / ',
     })

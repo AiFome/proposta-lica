@@ -368,6 +368,8 @@ def perfil():
             cfg.modelo_local=request.form.get('modelo_local','')
             cfg.modelo_decl=request.form.get('modelo_decl','')
             cfg.modelo_obs=request.form.get('modelo_obs','')
+            cfg.ordem_produto=request.form.get('ordem_produto','nome,fabricante,gramatura')
+            cfg.separador_produto=request.form.get('separador_produto',' / ')
             if not cfg.id: db.session.add(cfg)
             db.session.commit(); flash('Modelo salvo!', 'success')
         return redirect(url_for('app_.perfil'))
